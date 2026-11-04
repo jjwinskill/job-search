@@ -1,0 +1,14 @@
+{
+  "name": "job-search",
+  "description": "The job-search plugin, served straight from its own repo.",
+  "owner": {
+    "name": "Josh Winskill"
+  },
+  "plugins": [
+    {
+      "name": "job-search",
+      "source": "./",
+      "description": "Turn a Super Resume into a resume for each job description, track applications, and screen recruiter outreach."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# Fake personal terms for tests only.
+Jane Placeholder
+Acme Clientco
+jane@example.test
