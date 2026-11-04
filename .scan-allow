@@ -1,0 +1,6 @@
+# path:text pairs the personal-data scan allows. A hit passes only inside that text on that path; * means any path.
+LICENSE:Copyright (c) 2026 Josh Winskill
+.claude-plugin/plugin.json:"name": "Josh Winskill"
+.claude-plugin/marketplace.json:"name": "Josh Winskill"
+*:github.com/jjwinskill/job-search
+*:github.com/jjwinskill/n8n-resume-builder

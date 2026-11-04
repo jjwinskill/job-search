@@ -1,0 +1,11 @@
+{
+  "name": "job-search",
+  "version": "0.1.0",
+  "description": "Turn a Super Resume into a resume for each job description, track applications, and screen recruiter outreach.",
+  "author": {
+    "name": "Josh Winskill"
+  },
+  "repository": "https://github.com/jjwinskill/job-search",
+  "license": "MIT",
+  "keywords": ["resume", "job-search", "career"]
+}
