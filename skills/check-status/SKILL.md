@@ -10,8 +10,9 @@ disable-model-invocation: true
 
 ## What it will do
 
-- **Read email.** Read-only, including spam, and only mail since the last report. Never send, label or delete anything.
-- **Update Applications.** Match replies, rejections and interview invites to Applications, and update their Status and notes.
+- **Read email.** Read-only. The first run (no reports yet) sweeps 6 months; every later run reads only mail since the last report. Never send, label or delete anything. Queries, cost tips and known limits are in [gmail-queries.md](gmail-queries.md).
+- **Remind about spam.** The connector can't read spam, so each report reminds the user to check spam by hand for recruiter outreach since the last report.
+- **Update Applications.** Status logic, including the 30-day ghosted rule, lives in a tested script, not in this prose. Match replies, rejections and interview invites to Applications, and update their Status and notes.
 - **Screen Inbound.** Find recruiter outreach, sent directly or through job-network notifications, and screen it against `criteria.md`:
   - **Legitimacy:** the role appears on the employer's own careers page, or the sender's domain matches a real company.
   - **Fit:** level, focus, location and type.
