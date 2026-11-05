@@ -9,6 +9,7 @@
     "test": "node --test",
     "scan": "node scripts/scan-personal-data.mjs",
     "index": "node scripts/build-index.mjs",
-    "fetch-jd": "node scripts/fetch-jd.mjs"
+    "fetch-jd": "node scripts/fetch-jd.mjs",
+    "facts": "node scripts/fact-blocks.mjs"
   }
 }
