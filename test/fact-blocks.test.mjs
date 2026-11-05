@@ -71,3 +71,8 @@ test('headings and facts fences inside other code blocks are ignored', () => {
   assert.equal(entries.length, 1);
   assert.equal(entries[0].heading, 'Real');
 });
+
+test('a leftover weight key is a problem, so an old archive marking cannot silently lapse', () => {
+  const { problems } = validate(parseFactBlocks(doc(block({ ...employer, weight: 'archive' }))));
+  assert.match(problems.join('\n'), /`weight` was replaced/);
+});

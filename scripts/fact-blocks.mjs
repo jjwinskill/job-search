@@ -78,6 +78,7 @@ export function validate(entries) {
     for (const key of required) if (!e[key]) problems.push(`${at(e)}: ${e.kind} needs \`${key}\``);
     if (e.dates && !parseDates(e.dates)) problems.push(`${at(e)}: dates "${e.dates}" should be YYYY-MM..YYYY-MM (or ..present, or YYYY), comma-separated, start before end`);
     if (e.archived && e.archived !== 'yes') problems.push(`${at(e)}: archived is either \`yes\` or left out`);
+    if (e.weight) problems.push(`${at(e)}: \`weight\` was replaced by \`archived: yes\` (or nothing, for an eligible entry)`);
     if (e.kind === 'project' && e.status && !STATUSES.includes(e.status)) problems.push(`${at(e)}: status must be shipped, in progress or archived`);
     if (e.kind === 'engagement' && e.employer && !employers.has(e.employer)) problems.push(`${at(e)}: employer "${e.employer}" has no employer block`);
     const key = `${e.kind}:${e.name}`;
