@@ -43,9 +43,9 @@ Model: opus. No web.
 > - **unsupported:** no source in the Super Resume
 > - **inflated:** bigger than its source: a stronger ownership verb ("led" for "co-led"), a larger scope or number, a team result presented as the candidate's own, or a skill shown deeper than the Super Resume's self-assessment and skills inventory allow
 > - **Context as a claim:** supported only by a `#### Context` subsection, which is never resume text
-> - **a Recall entry leading:** an entry whose Context has a `**Recall:**` line, shown as a lead client (three or more bullets)
+> - **Recall work leading:** work named by a `**Recall:**` line in an entry's Context, shown as a lead client (three or more bullets) or a client's first bullet
 > - **archived:** an entry whose fact block says `archived: yes` (report it; the writer decides whether the JD asks for exactly that work)
-> - **a fact-block mismatch:** a name, title, role or date that differs from its fact block
+> - **a fact-block mismatch:** a name, title, role or date that differs from its fact block (a role may drop a trailing parenthetical)
 > - **a caveat:** a hedge, an explanation of a gap, or a note about who else worked on something
 > - **on the Do-Not-Use List**
 >
