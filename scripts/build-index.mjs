@@ -2,7 +2,7 @@
 // Rebuilds <data folder>/applications.csv from every applications/<folder>/application.md frontmatter.
 // The CSV is derived: never edit it by hand. Unknown keys become extra columns after the standard ones.
 // Exit codes: 0 written, 1 a record is unreadable or missing a required field, 2 not set up.
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig } from './config.mjs';
@@ -16,9 +16,10 @@ export const COLUMNS = [
 ];
 const REQUIRED = ['company', 'role', 'status', 'created'];
 
-// Flat `key: value` frontmatter only. A value may be JSON-quoted when it holds `:` or `#`.
+// Flat `key: value` frontmatter only. Quote a value (JSON-style) when it holds `:` or `#`.
+// Unquoted values are taken whole: there are no inline comments.
 export function parseFrontmatter(text) {
-  const match = /^---\n([\s\S]*?)\n---(\n|$)/.exec(text);
+  const match = /^---\n([\s\S]*?)\n---(\n|$)/.exec(text.replaceAll('\r\n', '\n'));
   if (!match) return null;
   const fields = {};
   for (const line of match[1].split('\n')) {
@@ -26,22 +27,17 @@ export function parseFrontmatter(text) {
     const i = line.indexOf(':');
     if (i === -1) continue;
     let value = line.slice(i + 1).trim();
-    if (value.startsWith('"')) {
-      try {
-        value = JSON.parse(value);
-      } catch {
-        // Leave a malformed quoted value as written rather than drop it.
-      }
-    } else {
-      value = value.replace(/\s+#.*$/, '');
-    }
+    const quoted = /^("(?:[^"\\]|\\.)*")(\s+#.*)?$/.exec(value);
+    if (quoted) value = JSON.parse(quoted[1]);
     fields[line.slice(0, i).trim()] = value;
   }
   return fields;
 }
 
+// A leading = + - @ would run as a formula in a spreadsheet, and these values can come from untrusted JDs and emails.
 const csvCell = (value) => {
-  const text = value == null ? '' : String(value);
+  const raw = value == null ? '' : String(value);
+  const text = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 };
 
@@ -50,7 +46,9 @@ export function buildIndex(applicationsDir) {
   const problems = [];
   const warnings = [];
   const folders = existsSync(applicationsDir)
-    ? readdirSync(applicationsDir).filter((name) => statSync(join(applicationsDir, name)).isDirectory())
+    ? readdirSync(applicationsDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map((entry) => entry.name)
     : [];
   for (const folder of folders) {
     const file = join(applicationsDir, folder, 'application.md');

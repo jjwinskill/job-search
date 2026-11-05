@@ -27,9 +27,17 @@ afterEach(() => {
   while (made.length) rmSync(made.pop(), { recursive: true, force: true });
 });
 
-test('frontmatter: plain, JSON-quoted and commented values', () => {
-  const fields = parseFrontmatter('---\ncompany: Example Co\nsource_url: "https://x.test/a?b=1"\nstatus: applied  # since May\n---\nbody');
-  assert.deepEqual(fields, { company: 'Example Co', source_url: 'https://x.test/a?b=1', status: 'applied' });
+test('frontmatter: plain values are whole, quoted values may carry a comment, CRLF works', () => {
+  const fields = parseFrontmatter('---\r\ncompany: Example Co\r\nrole: Engineer, Team #2\r\nsource_url: "https://x.test/a?b=1"\r\nstatus: "applied" # since May\r\n---\r\nbody');
+  assert.deepEqual(fields, { company: 'Example Co', role: 'Engineer, Team #2', source_url: 'https://x.test/a?b=1', status: 'applied' });
+});
+
+test('formula-looking cells are neutralized and hidden folders are skipped', () => {
+  const dir = dataDir({ a: record({ ...base, role: '=HYPERLINK("x")' }) });
+  mkdirSync(join(dir, 'applications', '.obsidian'));
+  const { csv, problems } = buildIndex(join(dir, 'applications'));
+  assert.deepEqual(problems, []);
+  assert.match(csv, /,"'=HYPERLINK\(""x""\)",/);
 });
 
 test('rows sort newest first, and extra keys become trailing columns', () => {
