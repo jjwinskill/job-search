@@ -5,3 +5,10 @@ A public Claude Code plugin. Never commit personal data: no names other than the
 - Vocabulary: `GLOSSARY.md`. Use its terms, and avoid the words it lists under _Avoid_.
 - Plugin commands: `skills/<name>/SKILL.md`.
 - Dev-only skills (not shipped with the plugin): `.claude/skills/`.
+- Guardrails: run `scripts/install-hooks.sh` once per clone.
+  - Pre-commit runs the tests and the personal-data scan.
+  - Pre-push scans what is being pushed, history included.
+  - Only the repo owner adds lines to `.scan-allow`.
+- Tests cover the scripts with real logic. Skills have no tests: end-to-end runs judge their quality.
+- Before merging a PR that changes `scripts/`, run `/code-review`.
+- For Claude Code questions (plugins, skills, cloud sessions), ask the `claude-code-guide` agent rather than fetching docs.

@@ -47,6 +47,32 @@ test('a planted term fails and names the file and line', () => {
   assert.match(result.stderr, /README\.md:2: "Acme Clientco"/);
 });
 
+test('an untracked file is scanned too, and the count says so', () => {
+  const dir = repo({ 'README.md': 'A generic plugin.\n' });
+  const clean = run(dir, ['--terms', TERMS]);
+  assert.equal(clean.status, 0);
+  assert.match(clean.stdout, /1 files in the working tree/);
+  writeFileSync(join(dir, 'draft.md'), 'Notes for Acme Clientco.\n');
+  const result = run(dir, ['--terms', TERMS]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /draft\.md:1: "Acme Clientco"/);
+  assert.match(result.stderr, /2 files in the working tree/);
+});
+
+test('a .gitignore\'d file is not scanned', () => {
+  const dir = repo({ 'README.md': 'A generic plugin.\n', '.gitignore': 'scratch/\n' });
+  execFileSync('mkdir', ['scratch'], { cwd: dir });
+  writeFileSync(join(dir, 'scratch', 'notes.md'), 'Acme Clientco\n');
+  assert.equal(run(dir, ['--terms', TERMS]).status, 0);
+});
+
+test('a hit tells the agent to ask the owner, not to widen the allowlist', () => {
+  const dir = repo({ 'README.md': 'Built for Acme Clientco.\n' });
+  const { stderr } = run(dir, ['--terms', TERMS]);
+  assert.match(stderr, /ask the repo owner/);
+  assert.doesNotMatch(stderr, /add a path:text line/);
+});
+
 test('matching ignores case', () => {
   const dir = repo({ 'notes.md': 'contact JANE@EXAMPLE.TEST\n' });
   assert.equal(run(dir, ['--terms', TERMS]).status, 1);

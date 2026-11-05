@@ -39,7 +39,11 @@ Requires Node 20 or later and the Claude Code CLI.
 
 ## Contributing: the personal-data scan
 
-This repo is public, so a pre-push hook blocks any push that would publish personal data, including data that was added and later removed in history. It reads the terms to block from `scan-terms.txt` in your data folder, and it fails closed if that file is missing.
+This repo is public, so two hooks guard it:
+- **Pre-commit** runs the tests and scans the working tree, including untracked files.
+- **Pre-push** blocks any push that would publish personal data, including data that was added and later removed in history.
+
+Both read the terms to block from `scan-terms.txt` in your data folder, and both fail closed if that file is missing.
 
 ```bash
 scripts/install-hooks.sh   # once per clone
@@ -47,7 +51,7 @@ npm run scan               # check the working tree any time
 npm test
 ```
 
-Intentionally public text, such as the author's name in `LICENSE`, goes in `.scan-allow` as `path:text`.
+Intentionally public text, such as the author's name in `LICENSE`, goes in `.scan-allow` as `path:text`. Only the repo owner adds lines there.
 
 ## License
 
