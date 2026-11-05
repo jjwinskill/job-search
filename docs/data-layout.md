@@ -15,7 +15,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 │       ├── resume.pdf     the rendered resume
 │       ├── review.md      what the reviewers found and what changed
 │       └── gaps.md        Gap Note questions and answers
-├── applications.csv       index rebuilt from the frontmatter; never edit by hand
+├── applications.csv       index rebuilt by `npm run index`; never edit by hand
 ├── lessons.md             Lessons learned from Edits
 ├── criteria.md            what the candidate is looking for, used to screen Inbound
 ├── do-not-use.md          the Do-Not-Use List
@@ -44,6 +44,8 @@ super_resume_version: 3f2a9c1   # commit of super-resume.md the resume came from
 ```
 
 The body below the frontmatter holds notes: contacts, interview rounds, outcome.
+
+Keep the frontmatter to flat `key: value` lines, and wrap a value in double quotes when it contains `:` or `#`. A key not listed above becomes an extra column in `applications.csv`. `npm run index` refuses to write the index if a record lacks `company`, `role`, `status` or `created`, and it warns about any status not listed below.
 
 ### Status values
 
