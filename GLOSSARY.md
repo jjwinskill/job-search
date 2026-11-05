@@ -9,7 +9,7 @@ The single, exhaustive record of the candidate's career: every employer, engagem
 _Avoid_: master resume, career doc, base resume
 
 **Update** (the Super Resume):
-Add or correct Super Resume material after the candidate approves it.
+Add or correct Super Resume material from Evidence. The candidate reviews a short report of each change and can veto any of it.
 _Avoid_: canonize, ingest, sync
 
 **Job Description (JD)**:
