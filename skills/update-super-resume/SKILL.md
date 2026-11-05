@@ -58,4 +58,5 @@ An **Update** changes the Super Resume, the candidate's single source of truth. 
 - **Ownership.** Describe what the candidate did. Keep other people's contributions out of the wording unless they're needed to keep a claim true.
 - **The Do-Not-Use List** in `do-not-use.md` is applied silently. Listed material is left out, and nothing mentions that it was.
 - **Context, not bullets.** Some material is true but isn't resume material: working style, philosophy, how a decision felt, lessons learned. Put it under a `#### Context (for cover letters and interviews, not resume bullets)` subsection of the entry it belongs to. Generated Resumes never turn Context into bullets. Cover Letter Drafts and the Job Thesis may draw on it.
-- **Resume Weight** is set on every new Employer, Engagement and Project: `lead`, `support` or `archive`. Use `archive` for work worth recording that shouldn't be pulled into resumes unless a JD asks for exactly that.
+- **Every entry is eligible for resumes by default**, because relevance is judged per JD. Mark `archived: yes` only for work the candidate wants on record but out of resumes.
+- **Would it go on a resume?** Propose only material a resume could use. Anything true but not resume material goes under Context without asking.

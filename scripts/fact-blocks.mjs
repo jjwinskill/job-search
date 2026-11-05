@@ -7,13 +7,12 @@ import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig } from './config.mjs';
 
 export const KINDS = {
-  employer: ['name', 'title', 'type', 'dates', 'weight'],
-  engagement: ['name', 'employer', 'role', 'dates', 'weight'],
-  project: ['name', 'status', 'dates', 'weight'],
+  employer: ['name', 'title', 'type', 'dates'],
+  engagement: ['name', 'employer', 'role', 'dates'],
+  project: ['name', 'status', 'dates'],
   education: ['name', 'credential', 'dates'],
 };
-const KNOWN = new Set(['kind', 'name', 'employer', 'title', 'type', 'role', 'credential', 'status', 'link', 'domain', 'dates', 'weight', 'evidence']);
-export const WEIGHTS = ['lead', 'support', 'archive'];
+const KNOWN = new Set(['kind', 'name', 'employer', 'title', 'type', 'role', 'credential', 'status', 'link', 'domain', 'dates', 'archived', 'evidence']);
 export const STATUSES = ['shipped', 'in progress', 'archived'];
 
 // "2025-01..2025-05, 2025-09..present" -> [{ start: '2025-01', end: '2025-05' }, { start: '2025-09', end: 'present' }]
@@ -78,7 +77,7 @@ export function validate(entries) {
     }
     for (const key of required) if (!e[key]) problems.push(`${at(e)}: ${e.kind} needs \`${key}\``);
     if (e.dates && !parseDates(e.dates)) problems.push(`${at(e)}: dates "${e.dates}" should be YYYY-MM..YYYY-MM (or ..present, or YYYY), comma-separated, start before end`);
-    if (e.weight && !WEIGHTS.includes(e.weight)) problems.push(`${at(e)}: weight must be lead, support or archive`);
+    if (e.archived && e.archived !== 'yes') problems.push(`${at(e)}: archived is either \`yes\` or left out`);
     if (e.kind === 'project' && e.status && !STATUSES.includes(e.status)) problems.push(`${at(e)}: status must be shipped, in progress or archived`);
     if (e.kind === 'engagement' && e.employer && !employers.has(e.employer)) problems.push(`${at(e)}: employer "${e.employer}" has no employer block`);
     const key = `${e.kind}:${e.name}`;
@@ -130,7 +129,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(2);
   }
   const entries = parseFactBlocks(readFileSync(file, 'utf8'));
-  for (const e of entries) console.log(`${(e.kind ?? '?').padEnd(10)} ${(e.weight ?? '').padEnd(7)} ${(e.dates ?? '').padEnd(34)} ${e.name ?? e.heading}`);
+  for (const e of entries) console.log(`${(e.kind ?? '?').padEnd(10)} ${(e.archived ? 'archived' : '').padEnd(8)} ${(e.dates ?? '').padEnd(34)} ${e.name ?? e.heading}`);
   const { problems, warnings } = validate(entries);
   for (const w of warnings) console.error(`warning: ${w}`);
   for (const p of problems) console.error(`error: ${p}`);
