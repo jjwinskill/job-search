@@ -52,3 +52,22 @@ test('overlapping months count once', () => {
   assert.equal(monthsCovered(entries), 18);
   assert.equal(monthsCovered([{ dates: '2026-01..present' }], '2026-03'), 3);
 });
+
+test('present only in the last interval', () => {
+  assert.equal(parseDates('2024-01..present, 2025-01..2025-06'), null);
+});
+
+test('an engagement outside its employer and a made-up project status are problems', () => {
+  const late = { ...engagement, dates: '2027-01..2027-06' };
+  const proj = { kind: 'project', name: 'P', status: 'done-ish', dates: '2026-04..present', weight: 'lead' };
+  const { problems } = validate(parseFactBlocks(doc(block(employer), block(late), block(proj))));
+  assert.match(problems.join('\n'), /fall outside Example Consultancy's dates/);
+  assert.match(problems.join('\n'), /status must be shipped, in progress or archived/);
+});
+
+test('headings and facts fences inside other code blocks are ignored', () => {
+  const md = `### Real\n\n\`\`\`sh\n# install deps\n\`\`\`\n\n\`\`\`\`markdown\n\`\`\`facts\nkind: engagement\nname: Example\n\`\`\`\n\`\`\`\`\n\n${block(employer)}`;
+  const entries = parseFactBlocks(md);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].heading, 'Real');
+});

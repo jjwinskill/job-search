@@ -14,6 +14,7 @@ export const KINDS = {
 };
 const KNOWN = new Set(['kind', 'name', 'employer', 'title', 'type', 'role', 'credential', 'status', 'link', 'domain', 'dates', 'weight', 'evidence']);
 export const WEIGHTS = ['lead', 'support', 'archive'];
+export const STATUSES = ['shipped', 'in progress', 'archived'];
 
 // "2025-01..2025-05, 2025-09..present" -> [{ start: '2025-01', end: '2025-05' }, { start: '2025-09', end: 'present' }]
 export function parseDates(text) {
@@ -29,6 +30,8 @@ export function parseDates(text) {
     if (range[3] !== 'present' && range[3] < range[1]) return null;
     intervals.push({ start: range[1], end: range[3] });
   }
+  // Only the last interval may still be running.
+  if (intervals.slice(0, -1).some((iv) => iv.end === 'present')) return null;
   return intervals.length ? intervals : null;
 }
 
@@ -36,7 +39,17 @@ export function parseFactBlocks(markdown) {
   const entries = [];
   const lines = markdown.replaceAll('\r\n', '\n').split('\n');
   let heading = '';
+  let outerFence = null; // inside some other fenced block, headings and facts fences are just text
   for (let i = 0; i < lines.length; i += 1) {
+    const fence = /^(`{3,}|~{3,})(.*)$/.exec(lines[i].trim());
+    if (outerFence) {
+      if (fence && fence[1][0] === outerFence[0] && fence[1].length >= outerFence.length && !fence[2].trim()) outerFence = null;
+      continue;
+    }
+    if (fence && !(fence[1] === '```' && fence[2].trim() === 'facts')) {
+      outerFence = fence[1];
+      continue;
+    }
     if (/^#{1,6} /.test(lines[i])) heading = lines[i].replace(/^#+ /, '').trim();
     if (lines[i].trim() !== '```facts') continue;
     const start = i + 1;
@@ -66,11 +79,21 @@ export function validate(entries) {
     for (const key of required) if (!e[key]) problems.push(`${at(e)}: ${e.kind} needs \`${key}\``);
     if (e.dates && !parseDates(e.dates)) problems.push(`${at(e)}: dates "${e.dates}" should be YYYY-MM..YYYY-MM (or ..present, or YYYY), comma-separated, start before end`);
     if (e.weight && !WEIGHTS.includes(e.weight)) problems.push(`${at(e)}: weight must be lead, support or archive`);
+    if (e.kind === 'project' && e.status && !STATUSES.includes(e.status)) problems.push(`${at(e)}: status must be shipped, in progress or archived`);
     if (e.kind === 'engagement' && e.employer && !employers.has(e.employer)) problems.push(`${at(e)}: employer "${e.employer}" has no employer block`);
     const key = `${e.kind}:${e.name}`;
     if (seen.has(key)) problems.push(`${at(e)}: a second ${e.kind} block named "${e.name}"`);
     seen.add(key);
     for (const k of Object.keys(e)) if (!KNOWN.has(k) && !['heading', 'line', 'closed'].includes(k)) warnings.push(`${at(e)}: unknown key \`${k}\``);
+  }
+  // An Engagement happens inside its Employment, so each of its intervals must sit inside the Employer's.
+  const byName = new Map(entries.filter((e) => e.kind === 'employer').map((e) => [e.name, parseDates(e.dates ?? '')]));
+  for (const e of entries.filter((x) => x.kind === 'engagement')) {
+    const outer = byName.get(e.employer);
+    const inner = parseDates(e.dates ?? '');
+    if (!outer || !inner) continue;
+    const inside = (iv) => outer.some((o) => o.start <= iv.start && (o.end === 'present' || (iv.end !== 'present' && iv.end <= o.end)));
+    if (!inner.every(inside)) problems.push(`${at(e)}: dates fall outside ${e.employer}'s dates`);
   }
   return { problems, warnings };
 }
