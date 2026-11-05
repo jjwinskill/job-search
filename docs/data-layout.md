@@ -41,9 +41,12 @@ source_url: https://example.com/jobs/123
 location: Remote (US)
 pay_range: $150k–$190k     # as posted; empty if not posted
 super_resume_version: 3f2a9c1   # commit of super-resume.md the resume came from
+outcome: offer-declined    # optional: what a status alone can't say
 ```
 
 The body below the frontmatter holds notes: contacts, interview rounds, outcome.
+
+`outcome` is optional free text for a result the status can't carry, such as `offer-declined` (status `withdrawn`) or `offer-accepted`. It becomes a column in the index like any other extra key.
 
 Keep the frontmatter to flat `key: value` lines, and wrap a value in double quotes when it contains `:` or `#`. A key not listed above becomes an extra column in `applications.csv`. `npm run index` refuses to write the index if a record lacks `company`, `role`, `status` or `created`, and it warns about any status not listed below.
 
