@@ -26,7 +26,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 
 ## `super-resume.md`
 
-One Markdown file. Each Employer, Engagement and Project opens with a fact block: type, exact dates or intervals, titles, overlaps, Resume Weight and Evidence. Prose follows the fact block. Phase 2 defines the exact fact-block format. Generated Resumes take dates and titles only from the fact blocks.
+One Markdown file. Each Employer, Engagement, Project and education entry opens with a fact block, a fenced `facts` block with its kind, dates, title or role, Resume Weight and Evidence. Prose follows the block. The format is in [skills/update-super-resume/fact-blocks.md](../skills/update-super-resume/fact-blocks.md), and `npm run facts` validates it. Generated Resumes take dates, titles and roles only from fact blocks.
 
 ## `application.md` frontmatter
 
