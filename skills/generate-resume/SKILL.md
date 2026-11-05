@@ -16,7 +16,7 @@ One JD per run. It asks no questions before the PDF exists.
 1. **Intake.** Save the JD before anything else: `node ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-jd.mjs <url> --out <application folder>/jd.md`. If it exits 1, read the page with the browser's page-text tool. If that fails too, ask the user to paste the posting. Never generate without a saved JD. If the role is already an Application, stop and say which one.
 2. **Company Research.** Cover mission, values, leadership principles, history, the last year of news, and the company's other JDs, especially from the same team.
 3. **Job Thesis.** Decide why this candidate, for this job, and pick the Engagements to lead with.
-4. **Draft.** Write it with the Super Resume in context.
+4. **Draft.** Write it with the Super Resume in context. Bullets come from an entry's work sections and fact block, never from its `Context` subsection, which only informs the thesis and tone.
 5. **Review.** Two fresh readers check the draft:
    - a hiring manager, who sees the JD, the research and the draft
    - an evidence checker, who sees the draft and the Super Resume but not the JD
