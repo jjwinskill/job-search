@@ -8,7 +8,7 @@ A Claude Code plugin for a job search. You keep one exhaustive record of your ca
 |---|---|
 | `/job-search:generate-resume <JD URL, text or file>` | Researches the company, writes a Job Thesis, drafts a resume from your Super Resume, has fresh reviewers check it, and renders a PDF. |
 | `/job-search:edit-resume` | Applies the changes you describe in plain words and re-renders. |
-| `/job-search:update-super-resume <what>` | Adds or corrects material in your Super Resume. Every claim needs Evidence, and you approve changes in small batches. |
+| `/job-search:update-super-resume <what>` | Adds or corrects material in your Super Resume from Evidence, then reports each change for you to veto. It asks only what no source can settle. |
 | `/job-search:check-status` | Reads your email (read-only), updates application statuses, and screens recruiter outreach against your criteria. |
 
 The plugin holds no personal data. It reads and writes a private data folder that you point it at. The folder's layout is described in [docs/data-layout.md](docs/data-layout.md).

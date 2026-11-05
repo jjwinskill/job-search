@@ -19,6 +19,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 ├── lessons.md             Lessons learned from Edits
 ├── criteria.md            what the candidate is looking for, used to screen Inbound
 ├── do-not-use.md          the Do-Not-Use List
+├── sources/README.md      optional evidence map: where Evidence lives and how to search it
 ├── reports/YYYY-MM-DD.md  status reports from /job-search:check-status
 ├── evals/                 evaluation runs, kept apart from real Applications
 └── scan-terms.txt         personal terms the pre-push scan blocks, one per line
