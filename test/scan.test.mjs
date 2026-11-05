@@ -13,7 +13,7 @@ const made = [];
 function repo(files) {
   const dir = mkdtempSync(join(tmpdir(), 'scan-test-'));
   made.push(dir);
-  const git = (...args) => execFileSync('git', args, { cwd: dir });
+  const git = (...args) => execFileSync('git', args, { cwd: dir, env: cleanEnv });
   git('init', '-q');
   git('config', 'user.email', 'test@example.test');
   git('config', 'user.name', 'Test');
@@ -23,12 +23,15 @@ function repo(files) {
 
 function commit(dir, files) {
   for (const [path, text] of Object.entries(files)) writeFileSync(join(dir, path), text);
-  execFileSync('git', ['add', '-A'], { cwd: dir });
-  execFileSync('git', ['commit', '-q', '-m', 'change'], { cwd: dir });
+  execFileSync('git', ['add', '-A'], { cwd: dir, env: cleanEnv });
+  execFileSync('git', ['commit', '-q', '-m', 'change'], { cwd: dir, env: cleanEnv });
 }
 
+// Drop git's hook variables so tests run inside a pre-commit hook still use their own temp repos.
+const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+
 function run(dir, args, env = {}) {
-  return spawnSync('node', [SCAN, ...args], { cwd: dir, encoding: 'utf8', env: { ...process.env, ...env } });
+  return spawnSync('node', [SCAN, ...args], { cwd: dir, encoding: 'utf8', env: { ...cleanEnv, ...env } });
 }
 
 afterEach(() => {
@@ -71,6 +74,22 @@ test('a hit tells the agent to ask the owner, not to widen the allowlist', () =>
   const { stderr } = run(dir, ['--terms', TERMS]);
   assert.match(stderr, /ask the repo owner/);
   assert.doesNotMatch(stderr, /add a path:text line/);
+});
+
+test('--staged scans what would be committed, not the working copy', () => {
+  const dir = repo({ 'README.md': 'A generic plugin.\n' });
+  writeFileSync(join(dir, 'README.md'), 'Built for Acme Clientco.\n');
+  execFileSync('git', ['add', 'README.md'], { cwd: dir, env: cleanEnv });
+  writeFileSync(join(dir, 'README.md'), 'Cleaned up but not staged.\n');
+  assert.equal(run(dir, ['--terms', TERMS]).status, 0);
+  assert.equal(run(dir, ['--terms', TERMS, '--staged']).status, 1);
+});
+
+test('a symlinked folder does not crash the scan', () => {
+  const dir = repo({ 'README.md': 'A generic plugin.\n' });
+  execFileSync('mkdir', ['real'], { cwd: dir });
+  execFileSync('ln', ['-s', 'real', 'linked'], { cwd: dir });
+  assert.equal(run(dir, ['--terms', TERMS]).status, 0);
 });
 
 test('matching ignores case', () => {

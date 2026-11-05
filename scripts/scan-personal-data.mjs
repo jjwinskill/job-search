@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Blocks personal data from reaching this public repo.
 // Terms come from the private data folder's scan-terms.txt (or --terms <file>), one per line, # for comments.
-// Modes: tracked and untracked files in the working tree (default), the tree at --rev <sha>,
+// Modes: tracked and untracked files in the working tree (default), what's staged (--staged), the tree at --rev <sha>,
 // or lines added by --new-commits <sha> that no remote has yet (so history is covered too).
 // .scan-allow holds `path:text` pairs; a hit is allowed when it falls inside that text on that path (`*` = any path).
 // Exit codes: 0 clean, 1 personal data found, 2 not set up (fails closed).
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig } from './config.mjs';
@@ -70,13 +70,22 @@ function scanText({ text, ...rest }) {
 
 // Tracked and untracked files alike, minus .gitignore'd ones, so a file not yet added can't slip past.
 function scanWorkingTree(root, terms, allow) {
-  const files = git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard'])
-    .split('\0')
-    .filter((path, i, all) => path && all.indexOf(path) === i && existsSync(join(root, path)));
+  const listed = git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']).split('\0');
+  // Skip deleted files, submodules and symlinked folders: only regular files can hold text.
+  const files = [...new Set(listed)].filter((path) => path && existsSync(join(root, path)) && statSync(join(root, path)).isFile());
   const hits = files.flatMap((path) =>
     scanText({ text: readFileSync(join(root, path), 'utf8'), terms, allow, path, where: 'working tree' }),
   );
   return { hits, scanned: `${files.length} files in the working tree` };
+}
+
+// What `git commit` would record right now, which can differ from the working tree.
+function scanStaged(root, terms, allow) {
+  const files = git(root, ['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR']).split('\0').filter(Boolean);
+  const hits = files.flatMap((path) =>
+    scanText({ text: git(root, ['show', `:${path}`]), terms, allow, path, where: 'staged' }),
+  );
+  return { hits, scanned: `${files.length} staged files` };
 }
 
 function scanRev(root, rev, terms, allow) {
@@ -108,7 +117,7 @@ function scanNewCommits(root, rev, terms, allow) {
   return { hits, scanned: `${commits} unpushed commits` };
 }
 
-export function scan({ root, termsFile, rev, newCommits }) {
+export function scan({ root, termsFile, rev, newCommits, staged }) {
   if (!termsFile) {
     try {
       termsFile = loadConfig().paths.scanTerms;
@@ -127,6 +136,7 @@ export function scan({ root, termsFile, rev, newCommits }) {
   const allow = readAllow(join(root, ALLOW_FILE));
   if (newCommits) return scanNewCommits(root, newCommits, terms, allow);
   if (rev) return scanRev(root, rev, terms, allow);
+  if (staged) return scanStaged(root, terms, allow);
   return scanWorkingTree(root, terms, allow);
 }
 
@@ -137,6 +147,7 @@ function parseArgs(argv) {
     if (flag === '--terms') opts.termsFile = argv[++i];
     else if (flag === '--rev') opts.rev = argv[++i];
     else if (flag === '--new-commits') opts.newCommits = argv[++i];
+    else if (flag === '--staged') opts.staged = true;
     else throw new SetupError(`Unknown argument: ${flag}`);
   }
   return opts;
