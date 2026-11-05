@@ -10,10 +10,10 @@ kind: engagement
 name: Client A
 employer: Example Consultancy
 role: Senior Full-Stack Engineer
-domain: Healthcare SaaS (group purchasing)
-dates: 2025-01..2025-05, 2025-09..2026-04
+domain: Logistics SaaS
+dates: 2022-03..2022-09, 2023-01..2024-06
 weight: lead
-evidence: git history in the client repos; Copilot chat history
+evidence: git history in the client repos; project chat logs
 ```
 ````
 
