@@ -4,8 +4,8 @@ import { monthsCovered, parseDates, parseFactBlocks, validate } from '../scripts
 
 const block = (fields) => `\`\`\`facts\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\``;
 const doc = (...blocks) => blocks.map((b, i) => `### Entry ${i}\n\n${b}\n\nProse.\n`).join('\n');
-const employer = { kind: 'employer', name: 'Example Consultancy', title: 'Senior Engineer', type: 'full-time', dates: '2016-04..2026-04', weight: 'lead' };
-const engagement = { kind: 'engagement', name: 'Client A', employer: 'Example Consultancy', role: 'Senior Front-End Engineer', dates: '2024-05..2024-12', weight: 'lead' };
+const employer = { kind: 'employer', name: 'Example Consultancy', title: 'Senior Engineer', type: 'full-time', dates: '2016-04..2026-04' };
+const engagement = { kind: 'engagement', name: 'Client A', employer: 'Example Consultancy', role: 'Senior Front-End Engineer', dates: '2024-05..2024-12' };
 
 test('dates: ranges, present, single years and several intervals', () => {
   assert.deepEqual(parseDates('2025-01..2025-05, 2025-09..present'), [{ start: '2025-01', end: '2025-05' }, { start: '2025-09', end: 'present' }]);
@@ -28,14 +28,14 @@ test('a valid set has no problems', () => {
   assert.deepEqual(warnings, []);
 });
 
-test('missing keys, bad dates, bad weight, unknown employer and duplicates are problems', () => {
-  const bad = { ...engagement, employer: 'Nobody', weight: 'high', dates: 'last year' };
+test('missing keys, bad dates, a bad archived value, unknown employer and duplicates are problems', () => {
+  const bad = { ...engagement, employer: 'Nobody', archived: 'maybe', dates: 'last year' };
   delete bad.role;
   const { problems } = validate(parseFactBlocks(doc(block(employer), block(bad), block(engagement), block(engagement))));
   const text = problems.join('\n');
   assert.match(text, /needs `role`/);
   assert.match(text, /dates "last year"/);
-  assert.match(text, /weight must be/);
+  assert.match(text, /archived is either/);
   assert.match(text, /employer "Nobody" has no employer block/);
   assert.match(text, /a second engagement block named "Client A"/);
 });
@@ -59,7 +59,7 @@ test('present only in the last interval', () => {
 
 test('an engagement outside its employer and a made-up project status are problems', () => {
   const late = { ...engagement, dates: '2027-01..2027-06' };
-  const proj = { kind: 'project', name: 'P', status: 'done-ish', dates: '2026-04..present', weight: 'lead' };
+  const proj = { kind: 'project', name: 'P', status: 'done-ish', dates: '2026-04..present', archived: 'yes' };
   const { problems } = validate(parseFactBlocks(doc(block(employer), block(late), block(proj))));
   assert.match(problems.join('\n'), /fall outside Example Consultancy's dates/);
   assert.match(problems.join('\n'), /status must be shipped, in progress or archived/);
@@ -70,4 +70,9 @@ test('headings and facts fences inside other code blocks are ignored', () => {
   const entries = parseFactBlocks(md);
   assert.equal(entries.length, 1);
   assert.equal(entries[0].heading, 'Real');
+});
+
+test('a leftover weight key is a problem, so an old archive marking cannot silently lapse', () => {
+  const { problems } = validate(parseFactBlocks(doc(block({ ...employer, weight: 'archive' }))));
+  assert.match(problems.join('\n'), /`weight` was replaced/);
 });

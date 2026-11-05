@@ -12,7 +12,6 @@ employer: Example Consultancy
 role: Senior Full-Stack Engineer
 domain: Logistics SaaS
 dates: 2022-03..2022-09, 2023-01..2024-06
-weight: lead
 evidence: git history in the client repos; project chat logs
 ```
 ````
@@ -34,13 +33,13 @@ One `key: value` per line. Unknown keys are allowed and reported as warnings.
 | `link` | project (optional) | A public repo or live demo |
 | `domain` | engagement (optional) | The client's field, for the `Client:` line |
 | `dates` | all | One or more intervals, comma-separated: `YYYY-MM..YYYY-MM`, `YYYY-MM..present`, or `YYYY` for a single year |
-| `weight` | employer, engagement, project | The Resume Weight: `lead`, `support` or `archive` |
+| `archived` | employer, engagement, project (optional) | `yes` keeps the entry for the record but out of Generated Resumes |
 | `evidence` | all (optional, expected) | Where the facts can be checked, `;`-separated |
 
-Required keys: employer `name title type dates weight`; engagement `name employer role dates weight`; project `name status dates weight`; education `name credential dates`.
+Required keys: employer `name title type dates`; engagement `name employer role dates`; project `name status dates`; education `name credential dates`.
 
 ## Rules
 
 - **Intervals are exact.** Intermittent or paused work is several intervals, never one span covering the gap. Overlapping Engagements are fine; experience totals count overlapping months once.
 - **A fact changes in its block first.** If prose and the block disagree, the block is wrong until the prose's source says otherwise. Fix the block in the same change.
-- **Resume Weight is a judgment about resumes, not about the work.** `archive` keeps an entry for the record while generation leaves it out unless a JD asks for exactly that.
+- **Relevance is decided per JD, not here.** Every entry is eligible for a Generated Resume, and the Job Thesis picks what to feature for each job. `archived: yes` is the only exception: the entry stays on record but out of resumes unless a JD asks for exactly that.

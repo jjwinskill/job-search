@@ -62,9 +62,9 @@ _Avoid_: job, gig, role, position
 Something the candidate built on their own initiative, with no client and no pay. It is a first-class Super Resume entry with an honest status and is never presented as paid work.
 _Avoid_: side project, hobby, engagement
 
-**Resume Weight**:
-How readily a Generated Resume may use a Super Resume entry: lead, support or archive. Archive entries are kept for the record and used only when a JD asks for exactly that.
-_Avoid_: priority, rank
+**Archived** (Super Resume entry):
+Kept for the record but left out of Generated Resumes unless a JD asks for exactly that. Every other entry is eligible, and the Job Thesis decides per JD what to feature.
+_Avoid_: weight, priority, rank
 
 **Application**:
 One role the candidate is pursuing, from the first Generated Resume (or a recruiter's first message) to the outcome, including its JD, documents, status and history.
