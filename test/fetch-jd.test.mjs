@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
-import { atsApi, extractJobPosting, fetchJd, htmlToMarkdown, pageToJd, toJdFile } from '../scripts/fetch-jd.mjs';
+import { atsApi, extractJobPosting, fetchJd, htmlToMarkdown, pageToJd, redirectedAway, toJdFile } from '../scripts/fetch-jd.mjs';
 
 const BODY = `<h2>About the role</h2><p>You will build things.</p><ul><li>Requirements: React</li><li>TypeScript</li></ul>${'<p>Responsibilities include shipping product features end to end with care.</p>'.repeat(20)}`;
 const page = (inner) => `<html><head><title>x</title></head><body><nav>Menu</nav><main>${inner}</main><script>evil()</script></body></html>`;
@@ -90,4 +90,27 @@ test('the CLI takes the URL as its first argument when there is no --out', async
   assert.equal(result.status, 2);
   const bad = spawnSync('node', [script, '--out'], { encoding: 'utf8' });
   assert.equal(bad.status, 2);
+});
+
+test('pay lines with parentheses survive the script-line filter', () => {
+  const { markdown } = pageToJd(`<body><h1>Engineer</h1><p>Pay: $150,000 - $190,000 (USD) (DOE)</p><p>var x = function(){ go(); };</p>${BODY}</body>`);
+  assert.match(markdown, /Pay: \$150,000 - \$190,000 \(USD\) \(DOE\)/);
+  assert.doesNotMatch(markdown, /var x/);
+});
+
+test('a short posting in structured data still counts', async () => {
+  const url = 'https://jobs.example.test/short';
+  const short = { ...posting, description: '<p>You will build the product. Requirements: React and five years of experience shipping web apps for real users.</p>'.repeat(4) };
+  const result = await fetchJd(url, { fetcher: net({ [url]: { body: page(ld(short)) } }) });
+  assert.equal(result.how, 'live page, structured data');
+});
+
+test('escaped HTML is decoded once, and a literal "<" in prose survives', () => {
+  assert.match(htmlToMarkdown('<p>&lt;5 years of X, more than 3 in Y</p>'), /<5 years of X, more than 3 in Y/);
+});
+
+test('a redirect to a different page counts as gone, a bad URL is not a crash', () => {
+  assert.equal(redirectedAway('https://co.test/jobs/123', 'https://co.test/open-roles'), true);
+  assert.equal(redirectedAway('https://co.test/jobs/123', 'https://co.test/jobs/123?src=x'), false);
+  assert.equal(atsApi('not a url'), null);
 });

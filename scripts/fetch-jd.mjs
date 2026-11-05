@@ -3,7 +3,8 @@
 // Tries, in order: the live page's JobPosting structured data, the ATS's public API (Greenhouse, Lever, Ashby),
 // the live page's main text, then the newest Wayback Machine snapshot (structured data, then text).
 // Usage: node scripts/fetch-jd.mjs <url> [--out <file>]. Exit codes: 0 saved, 1 nothing usable found, 2 usage error.
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
@@ -44,6 +45,9 @@ export function htmlToMarkdown(html) {
   return s.trim();
 }
 
+// Some sources send HTML escaped (`&lt;p&gt;`); decode it once, and only then, so literal `&lt;` in prose survives.
+const unescapeHtml = (s) => (/<[a-z]/i.test(s) || !/&lt;[a-z/]/i.test(s) ? s : decodeEntities(s));
+
 export function extractJobPosting(html) {
   for (const [, raw] of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
     let data;
@@ -80,12 +84,17 @@ export function postingToMarkdown(item) {
     const range = value.value ?? [value.minValue, value.maxValue].filter(Boolean).join('–');
     lines.push(`**Pay:** ${range} ${item.baseSalary.currency ?? ''} ${value.unitText ?? ''}`.replace(/\s+/g, ' ').trim());
   }
-  return { title: item.title ?? '', company: org ?? '', markdown: `${lines.join('\n')}\n\n${htmlToMarkdown(decodeEntities(item.description))}` };
+  return { title: item.title ?? '', company: org ?? '', markdown: `${lines.join('\n')}\n\n${htmlToMarkdown(unescapeHtml(item.description))}` };
 }
 
 // Public ATS APIs return the posting even when the page itself is a JavaScript shell.
 export function atsApi(url) {
-  const u = new URL(url);
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
   const parts = u.pathname.split('/').filter(Boolean);
   if (/(^|\.)greenhouse\.io$/.test(u.hostname) && parts[1] === 'jobs' && parts[2]) {
     return { kind: 'Greenhouse', api: `https://boards-api.greenhouse.io/v1/boards/${parts[0]}/jobs/${parts[2]}` };
@@ -101,7 +110,7 @@ export function atsApi(url) {
 
 function atsToMarkdown(kind, json, id) {
   if (kind === 'Greenhouse') {
-    return { title: json.title ?? '', company: '', markdown: `**Title:** ${json.title ?? ''}\n**Location:** ${json.location?.name ?? ''}\n\n${htmlToMarkdown(decodeEntities(json.content ?? ''))}` };
+    return { title: json.title ?? '', company: '', markdown: `**Title:** ${json.title ?? ''}\n**Location:** ${json.location?.name ?? ''}\n\n${htmlToMarkdown(unescapeHtml(json.content ?? ''))}` };
   }
   if (kind === 'Lever') {
     const lists = (json.lists ?? []).map((l) => `## ${l.text}\n\n${htmlToMarkdown(l.content ?? '')}`).join('\n\n');
@@ -113,8 +122,9 @@ function atsToMarkdown(kind, json, id) {
   return { title: job.title ?? '', company: '', markdown: `**Title:** ${job.title}\n**Location:** ${job.location ?? ''}${pay ? `\n**Pay:** ${pay}` : ''}\n\n${htmlToMarkdown(job.descriptionHtml ?? '')}` };
 }
 
-export function looksLikeJd(markdown) {
-  return markdown.length > 1200 && /responsib|requir|qualif|you will|what you|you'll/i.test(markdown);
+// Structured data and ATS APIs are the posting itself, so a short one still counts; scraped page text must clear a higher bar.
+export function looksLikeJd(markdown, minLength = 1200) {
+  return markdown.length > minLength && /responsib|requir|qualif|you will|what you|you'll|experience/i.test(markdown);
 }
 
 // Page text is the last resort, so trim the page chrome: start at the first H1 (job pages title the posting with one)
@@ -123,10 +133,11 @@ export function pageToJd(html) {
   const main = /<main\b[^>]*>([\s\S]*)<\/main>/i.exec(html) ?? /<body\b[^>]*>([\s\S]*)<\/body>/i.exec(html);
   let md = htmlToMarkdown(main ? main[1] : html);
   const h1 = md.search(/^# /m);
-  if (h1 > 0) md = md.slice(h1);
+  if (h1 > 0 && h1 < md.length * 0.3) md = md.slice(h1);
+  const isCode = (line) => /function\s*\(|=>|\)\s*\{|\}\s*\(|\bvar\s+\w+\s*=|document\.|window\.|\}\s*;|;\s*\}/.test(line);
   md = md
     .split('\n')
-    .filter((line) => line.length < 20 || (line.match(/[{}();=<>]/g) ?? []).length / line.length < 0.08)
+    .filter((line) => !isCode(line))
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -136,7 +147,20 @@ export function pageToJd(html) {
 
 async function realFetch(url) {
   const res = await fetch(url, { headers: { 'user-agent': UA }, redirect: 'follow', signal: AbortSignal.timeout(30000) });
-  return { status: res.status, body: Buffer.from(await res.arrayBuffer()) };
+  return { status: res.status, body: Buffer.from(await res.arrayBuffer()), finalUrl: res.url };
+}
+
+// A closed posting often redirects to the careers index; treat that page as "gone", not as the JD.
+export function redirectedAway(requested, finalUrl) {
+  if (!finalUrl) return false;
+  try {
+    const a = new URL(requested);
+    const b = new URL(finalUrl);
+    const id = a.pathname.split('/').filter(Boolean).pop() ?? '';
+    return a.pathname !== b.pathname && !(id && finalUrl.includes(id));
+  } catch {
+    return false;
+  }
 }
 
 // Wayback's raw (id_) snapshots can arrive still gzipped.
@@ -147,24 +171,26 @@ export async function fetchJd(url, { fetcher = realFetch } = {}) {
   const get = async (target) => {
     try {
       const res = await fetcher(target);
-      return res.status >= 200 && res.status < 300 ? asText(res.body) : (tried.push(`${target} → HTTP ${res.status}`), null);
+      if (res.status < 200 || res.status >= 300) return (tried.push(`${target} → HTTP ${res.status}`), null);
+      if (redirectedAway(target, res.finalUrl)) return (tried.push(`${target} → redirected to ${res.finalUrl} (posting likely closed)`), null);
+      return asText(res.body);
     } catch (err) {
       tried.push(`${target} → ${err.message}`);
       return null;
     }
   };
-  const found = (result, source, how) => (result && looksLikeJd(result.markdown) ? { ...result, source, how } : null);
+  const found = (result, source, how, min) => (result && looksLikeJd(result.markdown, min) ? { ...result, source, how } : null);
 
   const live = await get(url);
   const posting = live && extractJobPosting(live);
-  let result = posting && found(postingToMarkdown(posting), url, 'live page, structured data');
+  let result = posting && found(postingToMarkdown(posting), url, 'live page, structured data', 300);
   if (result) return result;
 
   const ats = atsApi(url);
   if (ats) {
     const raw = await get(ats.api);
     try {
-      result = raw && found(atsToMarkdown(ats.kind, JSON.parse(raw), ats.id), ats.api, `${ats.kind} API`);
+      result = raw && found(atsToMarkdown(ats.kind, JSON.parse(raw), ats.id), ats.api, `${ats.kind} API`, 300);
     } catch {
       tried.push(`${ats.api} → not JSON`);
     }
@@ -189,7 +215,7 @@ export async function fetchJd(url, { fetcher = realFetch } = {}) {
     if (!snap) continue;
     const source = `https://web.archive.org/web/${timestamp}/${original}`;
     const p = extractJobPosting(snap);
-    result = (p && found(postingToMarkdown(p), source, 'Wayback snapshot, structured data'))
+    result = (p && found(postingToMarkdown(p), source, 'Wayback snapshot, structured data', 300))
       ?? found(pageToJd(snap), source, 'Wayback snapshot, text');
     if (result) return result;
   }
@@ -207,8 +233,15 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const outIndex = args.indexOf('--out');
   const out = outIndex === -1 ? null : args[outIndex + 1];
   const url = args.find((a, i) => !a.startsWith('--') && (outIndex === -1 || i !== outIndex + 1));
-  if (!url || (outIndex !== -1 && !out)) {
-    console.error('Usage: node scripts/fetch-jd.mjs <url> [--out <file>]');
+  const validUrl = (() => {
+    try {
+      return Boolean(url && new URL(url));
+    } catch {
+      return false;
+    }
+  })();
+  if (!validUrl || (outIndex !== -1 && !out)) {
+    console.error('Usage: node scripts/fetch-jd.mjs <url> [--out <file>]  (the URL needs its https:// scheme)');
     process.exit(2);
   }
   const result = await fetchJd(url);
@@ -218,6 +251,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
   const file = toJdFile(url, result);
   if (out) {
+    mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, file);
     console.error(`Saved the JD from ${result.how} to ${out}.`);
   } else {
