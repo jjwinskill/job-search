@@ -164,7 +164,9 @@ function checkEducation(section, facts, problems) {
   const schools = facts.filter((f) => f.kind === 'education');
   const items = section.intro.flatMap((b) => (b.type === 'ul' ? b.items : [b.text]));
   for (const item of items) {
-    const [school, rest = ''] = plain(item).split(/\s+—\s+/);
+    const text = plain(item);
+    const cut = text.indexOf(' — ');
+    const [school, rest] = cut === -1 ? [text, ''] : [text.slice(0, cut), text.slice(cut + 3)];
     const fact = schools.find((f) => same(f.name, school));
     if (!fact) {
       problems.push(`"${school}" has no education fact block`);

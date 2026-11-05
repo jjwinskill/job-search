@@ -134,6 +134,7 @@ function run(command, args, what) {
 export function printPdf(html, out, { chrome = findChrome(), work }) {
   const page = join(work, 'resume.html');
   writeFileSync(page, html);
+  rmSync(out, { force: true }); // so an old PDF can't pass for this render
   // A throwaway profile keeps this away from any Chrome the user has open.
   run(chrome, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--no-pdf-header-footer',
     `--user-data-dir=${join(work, 'profile')}`, `--print-to-pdf=${out}`, pathToFileURL(page).href], 'Chrome');

@@ -11,6 +11,9 @@ test('the header holds the name, an optional headline and contact lines', () => 
   assert.equal(r.headline, 'Senior Full-Stack Engineer');
   assert.equal(r.contact.length, 2);
   assert.equal(parseResume('# Jane Doe\nSpringfield, OR | jane@example.com\n').headline, '');
+  assert.deepEqual(parseResume('# Jane Doe\njane@example.com\n').contact, ['jane@example.com']);
+  const only = parseResume('# J\n## Experience\n### Co | Eng | 2014\nOther clients: A, B\n').sections[0].entries[0];
+  assert.deepEqual(only.after, [{ type: 'p', text: 'Other clients: A, B' }]);
 });
 
 test('sections nest employers, clients, bullets and the other-clients line', () => {

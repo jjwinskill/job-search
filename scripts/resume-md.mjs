@@ -87,7 +87,8 @@ export function parseResume(markdown) {
     if (!resume.name) fail(i, 'the file starts with `# <name>`');
     if (!section) {
       // Between the name and the first section: an optional headline, then contact lines.
-      if (!resume.headline && !resume.contact.length && !line.includes(' | ')) resume.headline = line.trim();
+      const looksLikeContact = / \| |@|\]\(|\d{3}/.test(line);
+      if (!resume.headline && !resume.contact.length && !looksLikeContact) resume.headline = line.trim();
       else resume.contact.push(line.trim());
       return undefined;
     }
@@ -111,9 +112,13 @@ export function parseResume(markdown) {
       para.text += ` ${line.trim()}`;
       return undefined;
     }
-    if (sub && OTHER_LINE.test(line.trim())) sub = null;
     para = { type: 'p', text: line.trim() };
-    target().push(para);
+    if (entry && OTHER_LINE.test(para.text)) {
+      sub = null;
+      entry.after.push(para);
+    } else {
+      target().push(para);
+    }
     return undefined;
   });
   if (!resume.name) throw new ResumeFormatError('the file starts with `# <name>`');
