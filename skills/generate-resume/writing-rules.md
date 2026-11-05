@@ -1,6 +1,6 @@
 # Writing rules for a Generated Resume
 
-The rules every Job Thesis, draft, revision and Edit follows. Words in capitals are defined in `${CLAUDE_PLUGIN_ROOT}/GLOSSARY.md`; the source shape is `${CLAUDE_PLUGIN_ROOT}/docs/resume-format.md`. The candidate's own standing preferences are in `lessons.md` in the data folder, and they win where they're more specific than these rules.
+The rules every Job Thesis, draft, revision and Edit follows. Words in capitals are defined in `<plugin>/GLOSSARY.md`, and the source shape is in `<plugin>/docs/resume-format.md`, where `<plugin>` is the plugin root the skill names. The candidate's own standing preferences are in `lessons.md` in the data folder, and they win where they're more specific than these rules.
 
 ## Truth
 
