@@ -7,6 +7,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "scan": "node scripts/scan-personal-data.mjs"
+    "scan": "node scripts/scan-personal-data.mjs",
+    "index": "node scripts/build-index.mjs"
   }
 }
