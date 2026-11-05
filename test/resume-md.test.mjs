@@ -55,7 +55,8 @@ test('inline Markdown: links, bold and italic, everything else escaped', () => {
 test('the HTML keeps each heading with its first bullet and prints skill and education items as lines', () => {
   const html = toHtml(parseResume(source), '/* css */');
   assert.match(html, /<title>Jane Doe — Resume<\/title>/);
-  assert.match(html, /<div class="entry"><div class="lead"><div class="entry-head">.*Example Consultancy.*<p class="entry-note">.*<div class="sub"><div class="lead"><p class="sub-head"><span class="label">Client:<\/span> <strong>Client A<\/strong>/s);
+  // The employer line holds on to the first client's heading and first bullet only; the rest can break to the next page.
+  assert.match(html, /<div class="entry"><div class="lead"><div class="entry-head">.*Example Consultancy.*<p class="entry-note">.*<div class="lead"><p class="sub-head"><span class="label">Client:<\/span> <strong>Client A<\/strong>.*Co-developed[^<]*<\/li><\/ul><\/div><\/div><ul><li>Led a from-scratch/s);
   assert.match(html, /<p class="line"><strong>Languages:<\/strong> TypeScript/);
   assert.match(html, /<p class="other">Other clients: Client C<\/p>/);
   assert.match(html, /<span class="entry-dates">Apr 2016 - Apr 2026<\/span>/);

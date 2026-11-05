@@ -172,13 +172,13 @@ function headHtml({ parts, dates }) {
 }
 
 // "Client: Name — Role | Domain": the name carries the weight and the rest reads as body text.
-function subHtml(sub) {
+function subParts(sub) {
   const m = /^(Client:\s*)?([^—|]+?)(\s+[—|]\s+.*)?$/.exec(sub.head);
   const head = m
     ? `${m[1] ? `<span class="label">${escapeHtml(m[1].trim())}</span> ` : ''}<strong>${inline(m[2])}</strong>${m[3] ? `<span class="sub-role">${inline(m[3])}</span>` : ''}`
     : inline(sub.head);
   const { lead, rest } = splitLead(sub.blocks);
-  return `<div class="sub"><div class="lead"><p class="sub-head">${head}</p>${lead}</div>${rest}</div>`;
+  return { lead: `<div class="lead"><p class="sub-head">${head}</p>${lead}</div>`, rest };
 }
 
 function entryHtml(entry) {
@@ -188,15 +188,18 @@ function entryHtml(entry) {
   // The heading, its descriptor and the first client (or first bullet) stay together, so no heading is stranded.
   let lead = `${entry.head ? headHtml(entry.head) : ''}${notes}`;
   let body = '';
-  const subs = entry.subs.map(subHtml);
+  const subs = entry.subs.map(subParts);
   if (entry.intro.length > n) {
     const split = splitLead(entry.intro.slice(n));
     lead += split.lead;
     body = split.rest;
   } else if (subs.length) {
-    lead += subs.shift();
+    // Only the first client's heading and first bullet join the lead; its other bullets flow across the page break.
+    const first = subs.shift();
+    lead += first.lead;
+    body = first.rest;
   }
-  return `<div class="entry"><div class="lead">${lead}</div>${body}${subs.join('\n')}${entry.after.map((b) => blockHtml(b)).join('\n')}</div>`;
+  return `<div class="entry"><div class="lead">${lead}</div>${body}${subs.map((p) => `<div class="sub">${p.lead}${p.rest}</div>`).join('\n')}${entry.after.map((b) => blockHtml(b)).join('\n')}</div>`;
 }
 
 export function toHtml(resume, css = readFileSync(CSS_PATH, 'utf8')) {
