@@ -28,8 +28,6 @@ One paragraph.
 
 ### Example Consultancy | Senior Software Engineer (Consultant) | Apr 2016 - Apr 2026
 
-Software consultancy — full-time, embedded on client product teams.
-
 #### Client: Client A — Senior Front-End Engineer | Developer tools
 
 - Bullet.
@@ -58,6 +56,7 @@ Other clients: Client C, Client D
 | `# Name` | First line. The next line without ` \| ` is the headline; lines with ` \| ` are contact lines, printed in the page body where parsers read them. |
 | `## Section` | A section. Skills and Education items print as lines, not bullets. |
 | `### Name \| Title \| Dates` | An Employer (or a group such as the self-directed projects). The trailing date range prints on the right. |
+| A plain line under `###` | Optional: a one-line descriptor of the Employer, before its first client or bullet. Most resumes need none (see the writing rules). |
 | `#### Client: Name — Role \| Domain` | One Engagement inside the Employer above it, in body-size text with no dates, so the Employer's range owns the timeline. |
 | `#### Name \| [link](url)` | One Project inside its group. |
 | `Other clients: A, B` | The Engagements not detailed, on one line after the last client. |

@@ -38,6 +38,18 @@ One `key: value` per line. Unknown keys are allowed and reported as warnings.
 
 Required keys: employer `name title type dates`; engagement `name employer role dates`; project `name status dates`; education `name credential dates`.
 
+## The prose after the block
+
+Each Engagement and Project, and each Employer whose work isn't split into Engagements, has three layers after its fact block, in this order, under these headings. The plugin's skills find them by heading, and each layer plays a different part in a Generated Resume.
+
+| Heading | Holds | Form |
+|---|---|---|
+| `#### What I Actually Did (evidence notes, not resume text)` | Everything the Evidence shows: what was built, the mechanisms, numbers, names, dates | Notes, not sentences: a topic, then facts joined with ` · `. Nothing reads as a finished bullet. |
+| `#### Accomplishments (plain language, not resume text)` | The claims a bullet can be built around | One line each, verb first with the "I" implied, in words a recruiter knows, ending `(evidence: <the notes it rests on>)`. A Project's first line is its approved description, starting `Description (approved <date>`. |
+| `#### Context (for cover letters and interviews, not resume bullets)` | Stories, lessons, working style, how a decision felt, Recall lines | Prose. It shapes the Job Thesis and cover letters, never a bullet. |
+
+Other evidence subsections (what the candidate was hired to do, the stack, outcomes, collaboration) may sit between the fact block and the accomplishments, written as notes too.
+
 ## Rules
 
 - **Intervals are exact.** Intermittent or paused work is several intervals, never one span covering the gap. Overlapping Engagements are fine; experience totals count overlapping months once.

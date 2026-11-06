@@ -33,7 +33,7 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
    - **Clients**: score every eligible Engagement for this JD on relevance to the must-haves, ownership, strength of evidence and recency, then pick the lead and supporting clients that cover the most must-haves with the strongest evidence (see writing-rules.md, Experience). Give each pick a reason, and name its first bullet: the work nearest this team's problem.
    - **Lead with**: the one accomplishment the reader should meet first.
    - **Likely objection** and the evidence that quietly answers it, never argued in prose.
-   - **Summary plan**: the JD's requirements in its order, each with the summary phrase that answers it and the bullet that proves it.
+   - **Summary plan**: what each of its two or three sentences covers (the candidate's identity, the team's problem and why the candidate solves it, the AI practice when the lessons call for it, the pointer to work a reader can open), and the JD nouns it uses. None of it repeats a bullet's specifics.
    - **Gap Notes**: up to five questions, each a JD requirement the Super Resume doesn't settle.
    - **In three lines**: the thesis, for the run summary.
    - *Done when* every JD must-have is mapped to evidence or listed as a gap, and every Engagement has a score.
