@@ -30,10 +30,10 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
 4. **Job Thesis.** Write `<app>/thesis.md` from the JD, the research and the whole Super Resume. It decides what to feature, never what is true.
    - **What the team builds**, in one concrete sentence, and the three to five problems this hire would own.
    - **Must-haves**: each JD requirement mapped to the strongest Super Resume evidence, or marked as a gap.
-   - **Clients**: score every eligible Engagement for this JD on relevance to the must-haves, ownership, strength of evidence and recency, then pick the lead and supporting clients that cover the most must-haves with the strongest evidence (see writing-rules.md, Experience). Give each pick a reason.
+   - **Clients**: score every eligible Engagement for this JD on relevance to the must-haves, ownership, strength of evidence and recency, then pick the lead and supporting clients that cover the most must-haves with the strongest evidence (see writing-rules.md, Experience). Give each pick a reason, and name its first bullet: the work nearest this team's problem.
    - **Lead with**: the one accomplishment the reader should meet first.
    - **Likely objection** and the evidence that quietly answers it, never argued in prose.
-   - **Summary plan**: what the summary claims, in the JD's words.
+   - **Summary plan**: the JD's requirements in its order, each with the summary phrase that answers it and the bullet that proves it.
    - **Gap Notes**: up to five questions, each a JD requirement the Super Resume doesn't settle.
    - **In three lines**: the thesis, for the run summary.
    - *Done when* every JD must-have is mapped to evidence or listed as a gap, and every Engagement has a score.
