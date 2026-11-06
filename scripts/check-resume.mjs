@@ -269,9 +269,13 @@ const claimLines = (resume) => resume.sections
  * A Project's approved description ("Description (approved …") is left out, because the writer starts from it.
  */
 export function copiedRuns(resume, superResume, run = COPY_RUN) {
-  const source = words(superResume.split('\n').filter((l) => !/Description \(approved/.test(l)).join('\n'));
+  // Runs stay inside one paragraph, bullet, heading or table row of the Super Resume, never across two.
+  const chunks = superResume.replaceAll('\r\n', '\n').split(/\n(?=\s*(?:$|#|[-*] |\|))/).filter((c) => !/Description \(approved/.test(c));
   const grams = new Set();
-  for (let i = 0; i + run <= source.length; i += 1) grams.add(source.slice(i, i + run).join(' '));
+  for (const chunk of chunks) {
+    const source = words(chunk);
+    for (let i = 0; i + run <= source.length; i += 1) grams.add(source.slice(i, i + run).join(' '));
+  }
   const found = [];
   for (const line of claimLines(resume)) {
     const w = words(line);
@@ -312,14 +316,20 @@ export function parseTerms(text) {
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// Whole words, any case, any form of the term; longer forms first so "React.js" isn't also counted as "React".
-const termPattern = (forms) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...forms].sort((a, b) => b.length - a.length).map((f) => escapeRe(f).replace(/\s+/g, '\\s+')).join('|')})(?![\\p{L}\\p{N}])`, 'giu');
-const countIn = (text, re) => (String(text).normalize('NFKC').match(re) ?? []).length;
+const SHORT = 3;
+// Whole words, in any form of the term; longer forms first so "React.js" isn't also counted as "React". A short form
+// ("Go", "C") matches only in its own case and never inside "C#" or "C++", so "go-to" doesn't count as Go.
+const termPatterns = (forms) => {
+  const sorted = [...forms].sort((a, b) => b.length - a.length);
+  const build = (list, flags) => list.length && new RegExp(`(?<![\\p{L}\\p{N}])(?:${list.map((f) => escapeRe(f).replace(/\s+/g, '\\s+')).join('|')})(?![\\p{L}\\p{N}#+])`, flags);
+  return [build(sorted.filter((f) => f.length > SHORT), 'giu'), build(sorted.filter((f) => f.length <= SHORT), 'gu')].filter(Boolean);
+};
+const countIn = (text, patterns) => patterns.reduce((n, re) => n + (text.match(re) ?? []).length, 0);
 const squash = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 
 // The resume's own spelling of a term written differently ("NodeJS" for "Node.js"), if it has one.
 function variantOf(text, forms) {
-  const tokens = String(text).normalize('NFKC').split(/\s+/).filter(Boolean);
+  const tokens = text.split(/\s+/).filter(Boolean);
   const wanted = new Set(forms.map(squash));
   for (let size = 1; size <= 3; size += 1) {
     for (let i = 0; i + size <= tokens.length; i += 1) {
@@ -330,9 +340,10 @@ function variantOf(text, forms) {
   return null;
 }
 
-// A section's words with its headings, as one string.
-const sectionText = (section) => [...section.entries.flatMap((e) => [...(e.head?.parts ?? []), ...e.subs.map((s) => s.head)]), ...sectionTexts(section)]
-  .map(plain).join('\n');
+const sectionHeads = (section) => section.entries.flatMap((e) => [...(e.head?.parts ?? []), ...e.subs.map((s) => s.head)]);
+// A section's words, with or without its headings, as one string.
+const sectionText = (section, heads = true) => [...(heads ? sectionHeads(section) : []), ...sectionTexts(section)].map(plain).join('\n');
+const nfkc = (text) => String(text ?? '').normalize('NFKC');
 
 /**
  * Checks each JD term against the resume. Counts come from `text` (the PDF's extracted text, what an ATS reads) when
@@ -343,22 +354,25 @@ export function checkTerms(resume, terms, { text = null } = {}) {
   const problems = [];
   const warnings = [];
   const rows = [];
-  const parts = { summary: '', skills: '', experience: '' };
+  // Placement reads bodies only: an employer title or a client's role line isn't a bullet.
+  const parts = { summary: '', skills: '', experience: '', education: '' };
   for (const section of resume.sections) {
-    const part = /summary|profile/i.test(section.title) ? 'summary' : /skill/i.test(section.title) ? 'skills' : /experience|project/i.test(section.title) ? 'experience' : null;
-    if (part) parts[part] += `\n${sectionText(section)}`;
+    const part = /summary|profile/i.test(section.title) ? 'summary' : /skill/i.test(section.title) ? 'skills'
+      : /experience|project/i.test(section.title) ? 'experience' : /education|certif/i.test(section.title) ? 'education' : null;
+    if (part) parts[part] = nfkc(`${parts[part]}\n${sectionText(section, false)}`);
   }
-  const source = [resume.headline, ...resume.sections.map(sectionText)].join('\n');
-  const prose = claimLines(resume).join('\n');
+  const source = nfkc([resume.headline, ...resume.sections.map((s) => sectionText(s))].join('\n'));
+  const searched = text === null ? source : nfkc(text);
+  const prose = nfkc(claimLines(resume).join('\n'));
   for (const term of terms) {
-    const re = termPattern(term.forms);
-    const count = countIn(text ?? source, re);
+    const re = termPatterns(term.forms);
+    const count = countIn(searched, re);
     const where = Object.keys(parts).filter((k) => countIn(parts[k], re));
     rows.push({ term: term.term, count, where, preferred: term.preferred });
     const name = `"${term.term}"`;
     if (!count) {
-      const variant = variantOf(text ?? source, term.forms);
-      if (text && countIn(source, re)) problems.push(`${name} is in the source but not in the PDF's text, which is what an ATS reads`);
+      const variant = variantOf(searched, term.forms);
+      if (text !== null && countIn(source, re)) (term.preferred ? warnings : problems).push(`${name} is in the source but not in the PDF's text, which is what an ATS reads`);
       else if (variant) warnings.push(`${name} appears only as "${variant}": use the JD's spelling, since recruiters search it literally`);
       else if (!term.preferred) problems.push(`${name}, a JD must-have, appears nowhere in the resume: add it where the Super Resume supports it, or move it to the Gap Notes`);
       continue;
@@ -367,7 +381,7 @@ export function checkTerms(resume, terms, { text = null } = {}) {
     const repeats = term.tool ? 0 : countIn(prose, re);
     if (repeats > 3) warnings.push(`${name} appears ${repeats} times in the summary and bullets: three is the most before it reads as stuffing`);
     if (term.preferred) continue;
-    if (!where.includes('experience')) warnings.push(`${name} appears only in the ${where.join(' and ') || 'header'}: show it in a bullet too`);
+    if (!where.includes('experience')) warnings.push(`${name} appears only in ${where.length ? `the ${where.join(' and ')}` : 'headings or the header'}: show it in a bullet too`);
     if (term.tool && !where.includes('skills')) warnings.push(`${name} is a tool or technology the JD requires, so it belongs in Technical Skills too`);
     if (term.top && !where.includes('summary')) warnings.push(`${name} is one of the JD's top requirements, so it belongs in the summary`);
   }
@@ -439,7 +453,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (opts.terms) {
     const terms = checkTerms(resume, parseTerms(readFileSync(opts.terms, 'utf8')), { text: opts.text ? readFileSync(opts.text, 'utf8') : null });
     console.log(`JD terms, counted in ${opts.text ?? opts.source}:`);
-    for (const row of terms.rows) console.log(`  ${row.preferred ? '(preferred) ' : ''}${row.term}: ${row.count ? `${row.count}, in ${row.where.join(', ') || 'the header'}` : 'missing'}`);
+    for (const row of terms.rows) console.log(`  ${row.preferred ? '(preferred) ' : ''}${row.term}: ${row.count ? `${row.count}, in ${row.where.join(', ') || 'headings or the header'}` : 'missing'}`);
     result.problems.push(...terms.problems);
     result.warnings.push(...terms.warnings);
   }

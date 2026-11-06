@@ -1,5 +1,9 @@
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { candidateInfo, checkForm, checkResume, checkTerms, copiedRuns, copyWarning, factSpan, formatSpan, normalizeDate, parseTerms } from '../scripts/check-resume.mjs';
 import { parseFactBlocks } from '../scripts/fact-blocks.mjs';
@@ -159,7 +163,7 @@ test('the terms check reports missing must-haves, other spellings, placement and
   assert.match(w, /"TypeScript" is one of the JD's top requirements/);
   assert.match(w, /"React" is a tool or technology the JD requires, so it belongs in Technical Skills too/);
   assert.match(w, /"multiagent workflows" appears only as "multi-agent workflows"/);
-  assert.doesNotMatch(w, /"Engineer" appears/, 'role lines and the headline are not prose');
+  assert.doesNotMatch(w, /"Engineer" appears \d/, 'role lines and the headline are not prose');
   assert.doesNotMatch(w, /"React" appears \d/, 'a technology may repeat across clients');
   assert.deepEqual(rows.find((r) => r.term === 'component library'), { term: 'component library', count: 2, where: ['experience'], preferred: false });
 });
@@ -176,4 +180,49 @@ test('a term in the source but not in the PDF text is a problem: the ATS reads t
   const { problems } = checkTerms(parseResume(source), parseTerms('Claude Code\nKafka'), { text });
   assert.match(problems.join('\n'), /"Claude Code" is in the source but not in the PDF's text/);
   assert.equal(problems.length, 1);
+});
+
+test('a copied run never spans two lines of the Super Resume', () => {
+  const sr = `${superResume}\n- Notes: the release train shipped weekly to every customer\n- Other notes: editors publish pages without a deploy\n`;
+  const bullet = source.replace('- Lead developer of a shared React component library adopted by five teams',
+    '- Shipped weekly to every customer: editors publish pages without a deploy');
+  assert.deepEqual(copiedRuns(parseResume(bullet), sr), []);
+});
+
+test('placement reads bodies, not headings; Education is named; short terms match only in their case', () => {
+  const { warnings, rows } = checkTerms(parseResume(source), parseTerms('Front-End Engineer\nWeb Development Program\nGo\nC'));
+  const w = warnings.join('\n');
+  assert.match(w, /"Front-End Engineer" appears only in headings or the header: show it in a bullet too/);
+  assert.match(w, /"Web Development Program" appears only in the education/);
+  const go = parseResume(source.replace('Shipped a Unity/C# iOS game', 'Became the go-to person for a Unity/C# iOS game').replace('Other clients: Client C', 'Other clients: Client D'));
+  const { problems } = checkTerms(go, parseTerms('Go\nC'));
+  assert.match(problems.join('\n'), /"Go", a JD must-have, appears nowhere/);
+  assert.match(problems.join('\n'), /"C", a JD must-have, appears nowhere/);
+  assert.equal(rows.length, 4);
+});
+
+test('a preferred term missing from the PDF text is a warning, never an error', () => {
+  const { problems, warnings } = checkTerms(parseResume(source), parseTerms('Claude Code [preferred]'), { text: 'Jane Doe' });
+  assert.deepEqual(problems, []);
+  assert.match(warnings.join('\n'), /"Claude Code" is in the source but not in the PDF's text/);
+});
+
+const CLI = fileURLToPath(new URL('../scripts/check-resume.mjs', import.meta.url));
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
+const run = (...args) => spawnSync(process.execPath, [CLI, join(FIXTURES, 'resume.md'), '--super-resume', join(FIXTURES, 'super-resume.md'), ...args], { encoding: 'utf8' });
+
+test('the command fails on a missing must-have, prints the coverage, and refuses --text without --terms', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'terms-'));
+  writeFileSync(join(dir, 'terms.txt'), 'TypeScript [tool]\nKafka\n');
+  writeFileSync(join(dir, 'resume.txt'), 'Jane Doe TypeScript');
+  const missing = run('--terms', join(dir, 'terms.txt'), '--text', join(dir, 'resume.txt'));
+  assert.equal(missing.status, 1);
+  assert.match(missing.stdout, /TypeScript: 1, in skills/);
+  assert.match(missing.stdout, /Kafka: missing/);
+  assert.match(missing.stdout, /The resume matches the fact blocks; 1 JD must-have\(s\) missing\./);
+  writeFileSync(join(dir, 'terms.txt'), 'TypeScript [tool]\n');
+  const ok = run('--terms', join(dir, 'terms.txt'));
+  assert.equal(ok.status, 0);
+  assert.match(ok.stdout, /every JD must-have appears/);
+  assert.equal(run('--text', join(dir, 'resume.txt')).status, 2);
 });
