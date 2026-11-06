@@ -4,7 +4,7 @@ A Generated Resume is written as Markdown with a fixed shape, `resume.md`, and p
 
 ```bash
 node scripts/render-resume.mjs <resume.md> [--text resume.txt] [--png page1.png]   # PDF, page count, breaks, text layer
-node scripts/check-resume.mjs <resume.md>                                         # names, titles and dates against the fact blocks
+node scripts/check-resume.mjs <resume.md> [--terms terms.txt --text resume.txt]   # fact blocks, copying, JD terms
 ```
 
 ## Shape
@@ -71,9 +71,11 @@ Only links, `**bold**` and `*italic*` are inline Markdown; anything else prints 
 - Each `Client:` line and each name on the other-clients line is an Engagement of that Employer; the role is the block's `role` (a trailing parenthetical may be dropped) and the domain is its `domain`.
 - Each project is a Project block, with its `link`. Each school is an education block, with its `credential` and year.
 - The name and contact lines match the Super Resume's `## Candidate Info`.
-- Warnings: an `archived` entry in use, and a non-archived Engagement shown nowhere.
+- Warnings: an `archived` entry in use, a non-archived Engagement shown nowhere, and a summary sentence or bullet that shares eight or more words in a row with the Super Resume (a Project's approved description excepted).
 
 `--form <form.json>` checks a parse-check form instead: what an agent read from the PDF's text alone. A client read as an employer, a missed employer, or a wrong title or date range is a mismatch.
+
+`--terms <terms.txt>` checks the JD's must-have terms (format in the generate-resume skill, step 4), counting them in `--text <resume.txt>`, the PDF's extracted text, when given. A supported must-have missing from the text is an error. A term spelled differently from the JD, one only in the skills or the summary, a tool missing from Skills, a top requirement missing from the summary, and a phrase used more than three times in the prose are warnings.
 
 `render-resume.mjs` fails when the PDF runs past `--max-pages` (default 2) or when a source line is missing from its text layer. It warns when page 1 doesn't reach the first Employer and its first client, and when the last page is thin. Its `template` hash changes whenever the template does, so a skim check can say which layout it saw.
 

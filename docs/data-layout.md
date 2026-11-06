@@ -11,6 +11,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 │       ├── jd.md          the Job Description as found
 │       ├── research.md    Company Research, with links
 │       ├── thesis.md      the full Job Thesis
+│       ├── terms.txt      the JD's must-have terms in its spelling, for the keyword check
 │       ├── resume.md      the Generated Resume's source (docs/resume-format.md)
 │       ├── resume.pdf     the rendered resume
 │       ├── resume.txt     the PDF's extracted text: what a parser reads

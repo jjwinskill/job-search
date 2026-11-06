@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // Checks a Generated Resume against the Super Resume's fact blocks: every employer, title, date range, client, role,
 // project and school must print exactly as its fact block says, and the contact lines must match Candidate Info.
+// It also warns when a summary sentence or bullet copies a long run of words from the Super Resume.
 // With --form, it checks a parse-check form instead: what an agent read from the PDF's text, as an application form.
-// Usage: node scripts/check-resume.mjs <resume.md> [--form <form.json>] [--super-resume <file>]
-// Exit codes: 0 consistent (warnings allowed), 1 mismatches found, 2 not set up or bad usage.
+// With --terms, it also checks that the JD's must-have terms appear, in the JD's spelling, in the PDF's text (--text).
+// Usage: node scripts/check-resume.mjs <resume.md> [--form <form.json>] [--terms <terms.txt> [--text <resume.txt>]] [--super-resume <file>]
+// Exit codes: 0 consistent (warnings allowed), 1 problems found, 2 not set up or bad usage.
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig } from './config.mjs';
 import { parseFactBlocks } from './fact-blocks.mjs';
-import { DATE_RANGE, ResumeFormatError, parseResume, plain } from './resume-md.mjs';
+import { DATE_RANGE, LINE_SECTIONS, OTHER_LINE, ResumeFormatError, parseResume, plain } from './resume-md.mjs';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -126,7 +128,7 @@ function checkExperience(section, facts, problems, warnings, shown) {
       if (!role) warnings.push(`${client.name}: the client line names no role ("${client.role}")`);
       if (domain && client.domain && !same(domain, client.domain)) problems.push(`${client.name}: the domain "${domain}" should be "${client.domain}"`);
     }
-    for (const block of entry.after.filter((b) => b.type === 'p' && /^(\*\*)?Other [^:]+:/i.test(b.text))) {
+    for (const block of entry.after.filter((b) => b.type === 'p' && OTHER_LINE.test(b.text))) {
       for (const other of listNames(block.text)) {
         const client = mine.find((f) => same(f.name, other));
         if (!client) problems.push(`${name}: "${other}" on the other-clients line has no engagement fact block`);
@@ -244,9 +246,137 @@ export function checkForm(form, facts, { info = null, resume = null } = {}) {
   return { problems, warnings };
 }
 
+// --- Copying from the Super Resume -------------------------------------------------------------------------------
+
+// A run this long shared with the Super Resume means a sentence was pasted, not rewritten from its claim.
+export const COPY_RUN = 8;
+
+const words = (text) => String(text).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter(Boolean);
+
+// Every paragraph and bullet in a section, in order.
+const sectionTexts = (section) => [...section.intro, ...section.entries.flatMap((e) => [...e.intro, ...e.subs.flatMap((s) => s.blocks), ...e.after])]
+  .flatMap((b) => (b.type === 'ul' ? b.items : [b.text]));
+
+// What the reader meets as claims: the summary and every bullet or paragraph outside the skills and education lists.
+const claimLines = (resume) => resume.sections
+  .filter((section) => !LINE_SECTIONS.test(section.title))
+  .flatMap(sectionTexts)
+  .filter((text) => !OTHER_LINE.test(text))
+  .map(plain);
+
+/**
+ * Each claim line that shares COPY_RUN or more words in a row with the Super Resume: { line, length, run }.
+ * A Project's approved description ("Description (approved …") is left out, because the writer starts from it.
+ */
+export function copiedRuns(resume, superResume, run = COPY_RUN) {
+  const source = words(superResume.split('\n').filter((l) => !/Description \(approved/.test(l)).join('\n'));
+  const grams = new Set();
+  for (let i = 0; i + run <= source.length; i += 1) grams.add(source.slice(i, i + run).join(' '));
+  const found = [];
+  for (const line of claimLines(resume)) {
+    const w = words(line);
+    const hit = (i) => grams.has(w.slice(i, i + run).join(' '));
+    let best = null;
+    for (let i = 0; i + run <= w.length; i += 1) {
+      if (!hit(i)) continue;
+      let j = i;
+      while (j + 1 + run <= w.length && hit(j + 1)) j += 1;
+      const length = j - i + run;
+      if (!best || length > best.length) best = { length, run: w.slice(i, i + length).join(' ') };
+      i = j;
+    }
+    if (best) found.push({ line, ...best });
+  }
+  return found;
+}
+
+export const copyWarning = ({ line, length, run }) => `"${line.length > 60 ? `${line.slice(0, 60)}…` : line}" shares ${length} words in a row with the Super Resume ("${run}"): write it from its claim, not the sentence`;
+
+// --- JD terms (the ATS pass) -----------------------------------------------------------------------------------
+
+/**
+ * terms.txt: one JD must-have term per line, in the JD's spelling. "A | B" adds another form of the same term (an
+ * acronym and its full name). Tags: [tool] also belongs in Technical Skills, [top] is one of the JD's top requirements
+ * and belongs in the summary, [preferred] is reported but never required. Lines starting with # are comments.
+ */
+export function parseTerms(text) {
+  const terms = [];
+  for (const raw of String(text).replaceAll('\r\n', '\n').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const tags = new Set([...line.matchAll(/\[(tool|top|preferred)\]/gi)].map((m) => m[1].toLowerCase()));
+    const forms = line.replace(/\[(tool|top|preferred)\]/gi, '').split('|').map((f) => f.trim()).filter(Boolean);
+    if (forms.length) terms.push({ term: forms[0], forms, tool: tags.has('tool'), top: tags.has('top'), preferred: tags.has('preferred') });
+  }
+  return terms;
+}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Whole words, any case, any form of the term; longer forms first so "React.js" isn't also counted as "React".
+const termPattern = (forms) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...forms].sort((a, b) => b.length - a.length).map((f) => escapeRe(f).replace(/\s+/g, '\\s+')).join('|')})(?![\\p{L}\\p{N}])`, 'giu');
+const countIn = (text, re) => (String(text).normalize('NFKC').match(re) ?? []).length;
+const squash = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+// The resume's own spelling of a term written differently ("NodeJS" for "Node.js"), if it has one.
+function variantOf(text, forms) {
+  const tokens = String(text).normalize('NFKC').split(/\s+/).filter(Boolean);
+  const wanted = new Set(forms.map(squash));
+  for (let size = 1; size <= 3; size += 1) {
+    for (let i = 0; i + size <= tokens.length; i += 1) {
+      const window = tokens.slice(i, i + size).join(' ');
+      if (wanted.has(squash(window))) return window.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}#+]+$/gu, '');
+    }
+  }
+  return null;
+}
+
+// A section's words with its headings, as one string.
+const sectionText = (section) => [...section.entries.flatMap((e) => [...(e.head?.parts ?? []), ...e.subs.map((s) => s.head)]), ...sectionTexts(section)]
+  .map(plain).join('\n');
+
+/**
+ * Checks each JD term against the resume. Counts come from `text` (the PDF's extracted text, what an ATS reads) when
+ * given, otherwise from the source; where a term sits (summary, skills, experience) comes from the source's sections.
+ * Returns { problems, warnings, rows: [{ term, count, where, preferred }] }.
+ */
+export function checkTerms(resume, terms, { text = null } = {}) {
+  const problems = [];
+  const warnings = [];
+  const rows = [];
+  const parts = { summary: '', skills: '', experience: '' };
+  for (const section of resume.sections) {
+    const part = /summary|profile/i.test(section.title) ? 'summary' : /skill/i.test(section.title) ? 'skills' : /experience|project/i.test(section.title) ? 'experience' : null;
+    if (part) parts[part] += `\n${sectionText(section)}`;
+  }
+  const source = [resume.headline, ...resume.sections.map(sectionText)].join('\n');
+  const prose = claimLines(resume).join('\n');
+  for (const term of terms) {
+    const re = termPattern(term.forms);
+    const count = countIn(text ?? source, re);
+    const where = Object.keys(parts).filter((k) => countIn(parts[k], re));
+    rows.push({ term: term.term, count, where, preferred: term.preferred });
+    const name = `"${term.term}"`;
+    if (!count) {
+      const variant = variantOf(text ?? source, term.forms);
+      if (text && countIn(source, re)) problems.push(`${name} is in the source but not in the PDF's text, which is what an ATS reads`);
+      else if (variant) warnings.push(`${name} appears only as "${variant}": use the JD's spelling, since recruiters search it literally`);
+      else if (!term.preferred) problems.push(`${name}, a JD must-have, appears nowhere in the resume: add it where the Super Resume supports it, or move it to the Gap Notes`);
+      continue;
+    }
+    // A technology may repeat where it says how each thing was built; a phrase repeated in the prose reads as stuffing.
+    const repeats = term.tool ? 0 : countIn(prose, re);
+    if (repeats > 3) warnings.push(`${name} appears ${repeats} times in the summary and bullets: three is the most before it reads as stuffing`);
+    if (term.preferred) continue;
+    if (!where.includes('experience')) warnings.push(`${name} appears only in the ${where.join(' and ') || 'header'}: show it in a bullet too`);
+    if (term.tool && !where.includes('skills')) warnings.push(`${name} is a tool or technology the JD requires, so it belongs in Technical Skills too`);
+    if (term.top && !where.includes('summary')) warnings.push(`${name} is one of the JD's top requirements, so it belongs in the summary`);
+  }
+  return { problems, warnings, rows };
+}
+
 function parseArgs(argv) {
   const opts = {};
-  const named = { '--form': 'form', '--super-resume': 'superResume' };
+  const named = { '--form': 'form', '--super-resume': 'superResume', '--terms': 'terms', '--text': 'text' };
   for (let i = 0; i < argv.length; i += 1) {
     if (named[argv[i]]) {
       if (!argv[i + 1] || argv[i + 1].startsWith('--')) return null;
@@ -254,13 +384,13 @@ function parseArgs(argv) {
     } else if (argv[i].startsWith('--') || opts.source) return null;
     else opts.source = argv[i];
   }
-  return opts.source ? opts : null;
+  return opts.source && (opts.terms || !opts.text) ? opts : null;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const opts = parseArgs(process.argv.slice(2));
   if (!opts) {
-    console.error('Usage: node scripts/check-resume.mjs <resume.md> [--form <form.json>] [--super-resume <file>]');
+    console.error('Usage: node scripts/check-resume.mjs <resume.md> [--form <form.json>] [--terms <terms.txt> [--text <resume.txt>]] [--super-resume <file>]');
     process.exit(2);
   }
   let superResume = opts.superResume;
@@ -273,7 +403,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(2);
     }
   }
-  for (const file of [opts.source, superResume, opts.form].filter(Boolean)) {
+  for (const file of [opts.source, superResume, opts.form, opts.terms, opts.text].filter(Boolean)) {
     if (!existsSync(file)) {
       console.error(`No file at ${file}.`);
       process.exit(2);
@@ -302,10 +432,22 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     result = checkForm(form, facts, { info, resume });
   } else {
     result = checkResume(resume, facts, info);
+    for (const copy of copiedRuns(resume, srText)) result.warnings.push(copyWarning(copy));
   }
   if (!info) result.warnings.push('the Super Resume has no "## Candidate Info" section, so contact details went unchecked');
+  const factProblems = result.problems.length;
+  if (opts.terms) {
+    const terms = checkTerms(resume, parseTerms(readFileSync(opts.terms, 'utf8')), { text: opts.text ? readFileSync(opts.text, 'utf8') : null });
+    console.log(`JD terms, counted in ${opts.text ?? opts.source}:`);
+    for (const row of terms.rows) console.log(`  ${row.preferred ? '(preferred) ' : ''}${row.term}: ${row.count ? `${row.count}, in ${row.where.join(', ') || 'the header'}` : 'missing'}`);
+    result.problems.push(...terms.problems);
+    result.warnings.push(...terms.warnings);
+  }
   for (const w of result.warnings) console.error(`warning: ${w}`);
   for (const p of result.problems) console.error(`error: ${p}`);
-  console.log(result.problems.length ? `${result.problems.length} mismatch(es) with the fact blocks.` : `${opts.form ? 'The parse-check form' : 'The resume'} matches the fact blocks.`);
+  const termProblems = result.problems.length - factProblems;
+  const verdicts = [factProblems ? `${factProblems} mismatch(es) with the fact blocks` : `${opts.form ? 'The parse-check form' : 'The resume'} matches the fact blocks`];
+  if (opts.terms) verdicts.push(termProblems ? `${termProblems} JD must-have(s) missing` : 'every JD must-have appears');
+  console.log(`${verdicts.join('; ')}.`);
   process.exit(result.problems.length ? 1 : 0);
 }

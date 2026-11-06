@@ -32,14 +32,16 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
    - **Must-haves**: each JD requirement mapped to the strongest Super Resume evidence, or marked as a gap.
    - **Clients**: score every eligible Engagement for this JD on relevance to the must-haves, ownership, strength of evidence and recency, then pick the lead and supporting clients that cover the most must-haves with the strongest evidence (see writing-rules.md, Experience). Give each pick a reason, and name its first bullet: the work nearest this team's problem.
    - **Lead with**: the one accomplishment the reader should meet first.
+   - **Bullet plan**: one line per bullet, client by client, in order: the accomplishment in plain words, the JD requirement it answers, the one mechanism, the result, and the Super Resume lines it rests on (the entry and the accomplishment or note). A lead client's third or fourth bullet names the must-have only it proves.
    - **Likely objection** and the evidence that quietly answers it, never argued in prose.
    - **Summary plan**: what each of its two or three sentences covers (the candidate's identity, the team's problem and why the candidate solves it, the AI practice when the lessons call for it, the pointer to work a reader can open), and the JD nouns it uses. None of it repeats a bullet's specifics.
    - **Gap Notes**: up to five questions, each a JD requirement the Super Resume doesn't settle.
    - **In three lines**: the thesis, for the run summary.
-   - *Done when* every JD must-have is mapped to evidence or listed as a gap, and every Engagement has a score.
+   - **`<app>/terms.txt`**: every must-have the Super Resume supports, one per line in the JD's literal spelling. `A | B` adds another form of the same term (an acronym and its full name). Tag a tool or technology `[tool]`, the JD's top one or two requirements `[top]`, and a preferred term worth tracking `[preferred]`. Lines starting with `#` are comments.
+   - *Done when* every JD must-have is mapped to evidence or listed as a gap, every Engagement has a score, and every planned bullet names its requirement and its Super Resume lines.
 
-5. **Draft.** Write `<app>/resume.md` in the shape of `<plugin>/docs/resume-format.md`, following the thesis, the writing rules and every Lesson. Then:
-   - `node <plugin>/scripts/check-resume.mjs <app>/resume.md`: fix every error, and every warning the thesis doesn't justify.
+5. **Draft.** Write `<app>/resume.md` in the shape of `<plugin>/docs/resume-format.md`, following the thesis, the writing rules and every Lesson. Write each bullet from its plan line, never from a Super Resume sentence. Then:
+   - `node <plugin>/scripts/check-resume.mjs <app>/resume.md --terms <app>/terms.txt`: fix every error, and every warning the thesis doesn't justify. A copy warning (a line that shares a long run of words with the Super Resume) means rewriting that line from its plan.
    - `node <plugin>/scripts/render-resume.mjs <app>/resume.md --png <tmp>/page1.png` (`<tmp>` is a fresh `mktemp -d`): cut or add until it fits the page limit and the last page is well used.
    - *Done when* both scripts exit 0.
 
@@ -52,8 +54,8 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
 7. **Skim check.** Count the Applications whose frontmatter has this `template` hash and `skim_check: pass` (the hash is in the render report). Under five, send the Skim check brief with `<tmp>/page1.png`, and record `skim_check: pass` or `fail` in `application.md`. A fail is a template problem: report it, don't work around it in this resume.
    - *Done when* the check ran, or five passes on this template made it unnecessary.
 
-8. **Parse check.** Render with `--text <app>/resume.txt`, send the Parse check brief, then run `check-resume.mjs` with `--form`. Fix each mismatch in the source and re-render; if one can't be fixed in the source, report it.
-   - *Done when* the form matches the fact blocks, or the remaining mismatch is in the report.
+8. **Parse check.** Render with `--text <app>/resume.txt`, send the Parse check brief, then run the command under it, which checks the agent's form and the JD terms against the PDF's text, what an ATS reads. Fix each mismatch and each missing term in the source and re-render; if one can't be fixed in the source, report it.
+   - *Done when* the form matches the fact blocks and every supported must-have appears in the PDF's text, or what remains is in the report.
 
 9. **Record.** Final render: `node <plugin>/scripts/render-resume.mjs <app>/resume.md --text <app>/resume.txt` must exit 0. Add `super_resume_version` and `template` to `application.md`, and one body line: the date and that `/generate-resume` made it. Write `<app>/gaps.md` with the Gap Note questions. Rebuild the index with `node <plugin>/scripts/build-index.mjs`. If the data folder is a git repo, commit the Application folder and the index as `Generate resume: <company>, <role>`.
    - *Done when* the commit exists (or the files are written, outside git).
@@ -67,4 +69,4 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
 ## Data
 
 - **Reads:** `super-resume.md`, `lessons.md`, `do-not-use.md`, `criteria.md`, `applications/`
-- **Writes:** `applications/<folder>/` (`application.md`, `jd.md`, `research.md`, `thesis.md`, `resume.md`, `resume.pdf`, `resume.txt`, `review.md`, `gaps.md`) and `applications.csv`
+- **Writes:** `applications/<folder>/` (`application.md`, `jd.md`, `research.md`, `thesis.md`, `terms.txt`, `resume.md`, `resume.pdf`, `resume.txt`, `review.md`, `gaps.md`) and `applications.csv`

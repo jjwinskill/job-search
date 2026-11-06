@@ -11,9 +11,9 @@ const MONTH = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 export const DATE_RANGE = new RegExp(`^((${MONTH} )?\\d{4})(\\s*[-–—]\\s*((${MONTH} )?\\d{4}|Present))?$`, 'i');
 
 // "Other clients: A, B" closes the client above it and belongs to the whole entry.
-const OTHER_LINE = /^(\*\*)?Other [^:]{1,30}:/i;
+export const OTHER_LINE = /^(\*\*)?Other [^:]{1,30}:/i;
 // Sections whose list items print as plain lines rather than bullets.
-const LINE_SECTIONS = /skill|education|certif/i;
+export const LINE_SECTIONS = /skill|education|certif/i;
 
 export class ResumeFormatError extends Error {}
 

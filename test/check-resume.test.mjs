@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { candidateInfo, checkForm, checkResume, factSpan, formatSpan, normalizeDate } from '../scripts/check-resume.mjs';
+import { candidateInfo, checkForm, checkResume, checkTerms, copiedRuns, copyWarning, factSpan, formatSpan, normalizeDate, parseTerms } from '../scripts/check-resume.mjs';
 import { parseFactBlocks } from '../scripts/fact-blocks.mjs';
 import { parseResume } from '../scripts/resume-md.mjs';
 
@@ -108,4 +108,72 @@ test('a parser that reads a client as an employer, or misses an employer, fails 
   assert.match(text, /missed the employer Studio/);
   assert.doesNotMatch(text, /Agency/);
   assert.match(warnings.join('\n'), /Selected Projects group/);
+});
+
+const withProse = `${superResume}
+#### What I Actually Did (evidence notes, not resume text)
+
+- Component library: mapped 1:1 to CMS content types · editors publish pages without a deploy · built by me
+- Description (approved Jan 5): A Claude Code skill that turns a vague brief into a short list of strong ideas
+`;
+
+test('a bullet or summary sentence that copies eight words in a row from the Super Resume is reported', () => {
+  const copied = source.replace('- Co-developed a component library mapped 1:1 to CMS content types, so editors publish pages without a deploy',
+    '- Built a component library mapped 1:1 to CMS content types · editors publish pages without a deploy');
+  const runs = copiedRuns(parseResume(copied), withProse);
+  assert.equal(runs.length, 1);
+  assert.match(runs[0].run, /^component library mapped 1 1 to cms content types editors publish pages without a deploy$/);
+  assert.match(copyWarning(runs[0]), /shares 15 words in a row with the Super Resume/);
+});
+
+test('a rewritten bullet, a short shared phrase and an approved description are not copies', () => {
+  const rewritten = source.replace('- Co-developed a component library mapped 1:1 to CMS content types, so editors publish pages without a deploy',
+    '- Built a component library that matches each CMS content type, so editors publish pages without a deploy');
+  assert.deepEqual(copiedRuns(parseResume(rewritten), withProse), []);
+});
+
+const terms = parseTerms(`# Anything after a hash at the start is a comment
+TypeScript [tool] [top]
+React [tool]
+component library
+Kafka
+CI/CD | continuous integration [preferred]
+multiagent workflows
+Engineer
+`);
+
+test('terms.txt lists each term with its other forms and tags', () => {
+  assert.equal(terms.length, 7);
+  assert.deepEqual(terms[0], { term: 'TypeScript', forms: ['TypeScript'], tool: true, top: true, preferred: false });
+  assert.deepEqual(terms[4].forms, ['CI/CD', 'continuous integration']);
+  assert.equal(terms[4].preferred, true);
+});
+
+test('the terms check reports missing must-haves, other spellings, placement and overuse', () => {
+  const { problems, warnings, rows } = checkTerms(parseResume(source), terms);
+  const p = problems.join('\n');
+  const w = warnings.join('\n');
+  assert.match(p, /"Kafka", a JD must-have, appears nowhere/);
+  assert.doesNotMatch(p, /CI\/CD/, 'a preferred term is never required');
+  assert.match(w, /"TypeScript" appears only in the skills: show it in a bullet too/);
+  assert.match(w, /"TypeScript" is one of the JD's top requirements/);
+  assert.match(w, /"React" is a tool or technology the JD requires, so it belongs in Technical Skills too/);
+  assert.match(w, /"multiagent workflows" appears only as "multi-agent workflows"/);
+  assert.doesNotMatch(w, /"Engineer" appears/, 'role lines and the headline are not prose');
+  assert.doesNotMatch(w, /"React" appears \d/, 'a technology may repeat across clients');
+  assert.deepEqual(rows.find((r) => r.term === 'component library'), { term: 'component library', count: 2, where: ['experience'], preferred: false });
+});
+
+test('a phrase repeated more than three times in the summary and bullets reads as stuffing', () => {
+  const stuffed = source.replace('builds with AI agents every day', 'builds design systems, design systems tooling and design systems docs')
+    .replace('Lead developer of a shared React component library', 'Lead developer of a design systems library');
+  const { warnings } = checkTerms(parseResume(stuffed), parseTerms('design systems'));
+  assert.match(warnings.join('\n'), /"design systems" appears 4 times in the summary and bullets/);
+});
+
+test('a term in the source but not in the PDF text is a problem: the ATS reads the PDF', () => {
+  const text = 'Jane Doe\nTypeScript React component library Kafka multiagent workflows Engineer';
+  const { problems } = checkTerms(parseResume(source), parseTerms('Claude Code\nKafka'), { text });
+  assert.match(problems.join('\n'), /"Claude Code" is in the source but not in the PDF's text/);
+  assert.equal(problems.length, 1);
 });

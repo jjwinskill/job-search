@@ -81,7 +81,7 @@ A line that fails the recruiter fails, however well it reads to an engineer.
 
 ## ATS
 
-- **Keyword coverage.** Every JD must-have the Super Resume supports appears in the JD's literal form at least once in an Experience or Projects bullet, not only in Skills or the summary. Tool and technology must-haves also appear in Skills. No term appears more than three times. A must-have the Super Resume doesn't support goes to `gaps.md`.
+- **Keyword coverage.** Every JD must-have the Super Resume supports appears in the JD's literal form at least once in an Experience or Projects bullet, not only in Skills or the summary. Tool and technology must-haves also appear in Skills. No JD phrase appears more than three times in the summary and bullets; a technology can repeat where it says how each thing was built. A must-have the Super Resume doesn't support goes to `gaps.md`. `check-resume.mjs --terms` checks all of this against the PDF's text.
 - **What parsers read.** Every word is visible text: no hidden text and no stand-alone keyword blocks. The template supplies the conventional headings and single column, and `render-resume.mjs` checks the text layer.
 - **The form agrees.** The resume's dates and claims match the honest answers to the application form's screening questions (work authorization, location, years with a skill, degree).
 

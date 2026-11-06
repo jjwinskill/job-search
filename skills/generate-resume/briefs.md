@@ -19,19 +19,31 @@ Model: opus. Agent type: one with web search and web fetch.
 
 Model: opus. No web.
 
-> You are the hiring manager for the role in <jd.md>. Read the JD, the company research in <research.md>, and a candidate's resume in <resume.md>. Also look at <page1.png>, page 1 as rendered: it's what an eight-second skim sees. You know nothing else about the candidate.
+> You'll read a candidate's resume twice, in this order, for the role in <jd.md>. You know nothing about the candidate beyond the resume.
+>
+> **Pass 1, as the recruiter.** Read only the JD's title and its first paragraph, then look at <page1.png>, page 1 as rendered, for about thirty seconds. You screen for this team but you aren't an engineer. Write down, before reading anything else:
+> - what this person does and why they might fit, in two sentences
+> - every term on page 1 you couldn't explain to the hiring manager
+> - every bullet whose point you couldn't say back in your own words
+>
+> **Pass 2, as the engineering manager.** Now read the whole JD, the company research in <research.md> and the resume in <resume.md>.
 >
 > Report, as a numbered list:
 > 1. **Screen or not**, in two sentences, and why.
-> 2. **Must-haves the resume doesn't show convincingly**, each with the kind of evidence that would convince you.
-> 3. **Strengths this JD wants that the resume could show more strongly or earlier**, including anything the summary should lead with.
-> 4. **Vague bullets** that don't say what was owned or achieved.
-> 5. **Trivia**: bullets about implementation detail (a config value, a component name, a line count) instead of impact and responsibility.
-> 6. **Voice**: buzzwords, slogans, claims about temperament, anything that reads machine-written.
-> 7. **Page 1**: whether it carries the strongest matches for this JD.
-> 8. **Misreads**: anything that makes a client look like the employer, or makes dates or titles confusing.
+> 2. **The recruiter's pass**: your two sentences, the terms and the bullets you couldn't follow.
+> 3. **Must-haves the resume doesn't show convincingly**, each with the kind of evidence that would convince you.
+> 4. **Strengths this JD wants that the resume could show more strongly or earlier**, including anything the summary should lead with.
+> 5. **Bullets a stranger can't follow**: vague about what was owned or achieved, or needing context the reader doesn't have (an internal name, a story's backstory).
+> 6. **Trivia**: bullets about implementation detail (a config value, a component name, a line count, a version) instead of impact and responsibility.
+> 7. **Run-ons**: a sentence that tries to say too much, or that you had to read twice.
+> 8. **Hedges and weak ownership**: "most of", "helped", "contributed to", "co-developed", or "led" before a thing.
+> 9. **Repetition** across the summary, the skills and the bullets: the same number, artifact or claim in two places.
+> 10. **Skills you'd doubt in an interview**: an item no bullet or project shows in use, or a term too narrow for the role.
+> 11. **Lines that read badly to a hiring manager**: siloing or friction ("without asking", "pushed back"), self-praise, buzzwords, temperament claims, anything that reads machine-written.
+> 12. **Page 1**: whether it carries the strongest matches for this JD.
+> 13. **Misreads**: anything that makes a client look like the employer, or makes dates or titles confusing.
 >
-> Quote the resume text each finding is about. Suggest a direction, not a rewrite, and never suggest a specific fact the resume doesn't contain. Under 700 words.
+> Quote the resume text each finding is about. Suggest a direction, not a rewrite, and never suggest a specific fact the resume doesn't contain. Under 900 words.
 
 ## Evidence checker
 
@@ -80,4 +92,4 @@ Model: sonnet. No web.
 >
 > `work_history` lists each job the way the form's employment section would, most recent first. Reply with one line saying how many jobs you found.
 
-Then run `node <plugin>/scripts/check-resume.mjs <resume.md> --form <form.json>`.
+Then run `node <plugin>/scripts/check-resume.mjs <resume.md> --form <form.json> --terms <terms.txt> --text <resume.txt>`.
