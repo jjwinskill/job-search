@@ -34,7 +34,7 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
    - **Lead with**: the one accomplishment the reader should meet first.
    - **Bullet plan**: one line per bullet, client by client, in order: the accomplishment in plain words, the JD requirement it answers, the one mechanism, the result, and the Super Resume lines it rests on (the entry and the accomplishment or note). A lead client's third or fourth bullet names the must-have only it proves.
    - **Likely objection** and the evidence that quietly answers it, never argued in prose.
-   - **Summary plan**: what each of its two or three sentences covers (the candidate's identity, the team's problem and why the candidate solves it, the AI practice when the lessons call for it, the pointer to work a reader can open), and the JD nouns it uses. None of it repeats a bullet's specifics.
+   - **Summary plan**: what each of its two or three sentences covers (the candidate's identity, the team's problem and why the candidate solves it, the AI practice when the lessons call for it), and the JD nouns it uses. None of it repeats a bullet's specifics.
    - **Gap Notes**: up to five questions, each a JD requirement the Super Resume doesn't settle.
    - **In three lines**: the thesis, for the run summary.
    - **`<app>/terms.txt`**: every must-have the Super Resume supports, one per line in the JD's literal spelling. `A | B` adds another form of the same term (an acronym and its full name). Tag a tool or technology `[tool]`, the JD's top one or two requirements `[top]`, and a preferred term worth tracking `[preferred]`. Lines starting with `#` are comments.

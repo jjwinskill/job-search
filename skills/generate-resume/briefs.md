@@ -34,7 +34,7 @@ Model: opus. No web.
 > 3. **Must-haves the resume doesn't show convincingly**, each with the kind of evidence that would convince you.
 > 4. **Strengths this JD wants that the resume could show more strongly or earlier**, including anything the summary should lead with.
 > 5. **Bullets a stranger can't follow**: vague about what was owned or achieved, or needing context the reader doesn't have (an internal name, a story's backstory).
-> 6. **Trivia**: bullets about implementation detail (a config value, a component name, a line count, a version) instead of impact and responsibility.
+> 6. **Trivia**: bullets about implementation detail (a config value, a component name, a line count, a version) instead of impact and responsibility. A count that sizes the work (screens, teams, users) is scope, not trivia.
 > 7. **Run-ons**: a sentence that tries to say too much, or that you had to read twice.
 > 8. **Hedges and weak ownership**: "most of", "helped", "contributed to", "co-developed", or "led" before a thing.
 > 9. **Repetition** across the summary, the skills and the bullets: the same number, artifact or claim in two places.
