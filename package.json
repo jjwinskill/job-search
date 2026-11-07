@@ -10,6 +10,8 @@
     "scan": "node scripts/scan-personal-data.mjs",
     "index": "node scripts/build-index.mjs",
     "fetch-jd": "node scripts/fetch-jd.mjs",
-    "facts": "node scripts/fact-blocks.mjs"
+    "facts": "node scripts/fact-blocks.mjs",
+    "render": "node scripts/render-resume.mjs",
+    "check-resume": "node scripts/check-resume.mjs"
   }
 }

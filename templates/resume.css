@@ -1,0 +1,43 @@
+/* Resume template, printed by scripts/render-resume.mjs through local Chrome.
+   Ported from the n8n workflow's render-html node: one column, real text, no tables, images or icons,
+   and contact details in the page body (parsers can skip page headers and footers).
+   Length is fixed by cutting content, never by shrinking this type or these margins. */
+
+@page { size: letter; margin: 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.35; color: #111; margin: 0; }
+a { color: #111; text-decoration: none; }
+strong { font-weight: bold; }
+p { margin: 2px 0 6px 0; }
+ul { margin: 2px 0 6px 0; padding-left: 16px; }
+li { margin-bottom: 2.5px; }
+
+h1 { font-size: 19pt; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 1px 0; }
+.headline { font-size: 11.5pt; font-weight: bold; color: #333; margin: 0 0 3px 0; }
+.contact { font-size: 9.5pt; color: #333; margin: 0 0 2px 0; }
+h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1.2px solid #222; padding-bottom: 2px; margin: 12px 0 6px 0; }
+
+/* An employer (or a Selected Projects group): bold name, title after it, dates on the right. */
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 9px; }
+.entry-title { font-size: 11pt; }
+.entry-role { font-weight: normal; }
+.entry-dates { font-size: 9.5pt; color: #444; white-space: nowrap; }
+.entry-note { margin: 1px 0 4px 0; color: #444; font-size: 9.5pt; }
+
+/* A client inside its employer, or a project inside its group: body-size text, never a second employer heading. */
+.sub-head { margin: 7px 0 1px 0; }
+.sub-head .label { color: #444; }
+.sub-role { color: #333; }
+.other { margin: 6px 0 2px 0; color: #333; }
+.line { margin: 1.5px 0; }
+
+/* The lead bullet and the rest are separate lists so a page can break between them; close the seam. */
+.lead ul { margin-bottom: 0; }
+.lead + ul { margin-top: 0; }
+
+/* Page breaks: the unbreakable units are as small as possible. A heading stays with its first bullet,
+   and later bullets flow freely, so pages fill instead of ending early. */
+h1, h2, .entry-head, .sub-head { break-after: avoid-page; page-break-after: avoid; }
+h2 { break-inside: avoid; page-break-inside: avoid; }
+.keep, .lead, li, .line { break-inside: avoid; page-break-inside: avoid; }
+p, li { orphans: 2; widows: 2; }

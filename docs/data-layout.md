@@ -11,12 +11,14 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 │       ├── jd.md          the Job Description as found
 │       ├── research.md    Company Research, with links
 │       ├── thesis.md      the full Job Thesis
-│       ├── resume.md      the Generated Resume's source
+│       ├── terms.txt      the JD's must-have terms in its spelling, for the keyword check
+│       ├── resume.md      the Generated Resume's source (docs/resume-format.md)
 │       ├── resume.pdf     the rendered resume
+│       ├── resume.txt     the PDF's extracted text: what a parser reads
 │       ├── review.md      what the reviewers found and what changed
 │       └── gaps.md        Gap Note questions and answers
 ├── applications.csv       index rebuilt by `npm run index`; never edit by hand
-├── lessons.md             Lessons learned from Edits
+├── lessons.md             Lessons: standing preferences every Generated Resume follows, added to by Edits
 ├── criteria.md            what the candidate is looking for, used to screen Inbound
 ├── do-not-use.md          the Do-Not-Use List
 ├── sources/README.md      optional evidence map: where Evidence lives and how to search it
@@ -27,7 +29,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 
 ## `super-resume.md`
 
-One Markdown file. Each Employer, Engagement, Project and education entry opens with a fact block, a fenced `facts` block with its kind, dates, title or role, Evidence, and `archived: yes` for entries kept out of resumes. Prose follows the block. The format is in [skills/update-super-resume/fact-blocks.md](../skills/update-super-resume/fact-blocks.md), and `npm run facts` validates it. Generated Resumes take dates, titles and roles only from fact blocks.
+One Markdown file. It opens with a `## Candidate Info` list (`- Name:`, `- Phone:`, `- Email:`, `- Location:`, `- LinkedIn:`, `- GitHub:`), which Generated Resumes copy into their contact lines and `check-resume.mjs` checks them against. Each Employer, Engagement, Project and education entry opens with a fact block, a fenced `facts` block with its kind, dates, title or role, Evidence, and `archived: yes` for entries kept out of resumes. Prose follows the block. The format is in [skills/update-super-resume/fact-blocks.md](../skills/update-super-resume/fact-blocks.md), and `npm run facts` validates it. Generated Resumes take dates, titles and roles only from fact blocks.
 
 ## `application.md` frontmatter
 
@@ -42,6 +44,8 @@ source_url: https://example.com/jobs/123
 location: Remote (US)
 pay_range: $150k–$190k     # as posted; empty if not posted
 super_resume_version: 3f2a9c1   # commit of super-resume.md the resume came from
+template: 0d4e8a3          # resume template hash the PDF was rendered with
+skim_check: pass           # optional: pass or fail, when a skim check ran on this template
 outcome: offer-declined    # optional: what a status alone can't say
 ```
 
