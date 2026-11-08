@@ -346,3 +346,41 @@ test('the CLI prints the window, writes the report and index, and refuses bad in
   assert.equal(set.status, 0);
   assert.match(set.stdout, /applied → withdrawn/);
 });
+
+test('review fixes: pay parsing ignores 401k and percentages, reads monthly pay, and the floor message is exact', () => {
+  assert.equal(parsePayTop('$120k-$140k + 401k match'), 140000);
+  assert.equal(parsePayTop('$120k-$140k + 401(k) and 10% bonus'), 140000);
+  assert.equal(parsePayTop('$15,000/month'), 180000);
+  assert.equal(parsePayTop('$12k per month'), 144000);
+  assert.equal(parsePayTop('150-190K'), 190000);
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  assert.match(screen({ checks: pass, pay_range: '$120,000 - $149,600' }, 150000).reasons[0], /\$149,600, is under the \$150k floor/);
+});
+
+test('review fixes: a confirmation with odd wording finds the one drafted record; a new role at a known company is a new Inbound', () => {
+  const list = apps([['d', app({ company: 'Globex', role: 'Senior Product Engineer', status: 'drafted', applied: '', created: '2026-03-01' })]]);
+  assert.equal(matchApplication(list, { company: 'Globex', role: 'Software Engineer, Growth Team', date: '2026-03-02', type: 'applied' }).app.folder, 'd');
+
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  const dir = dataDir({
+    old: app({ company: 'Globex', role: 'Senior Software Engineer', status: 'rejected', last_contact: '2026-01-20', created: '2026-01-02', applied: '2026-01-02' }),
+    open: app({ company: 'Initech', role: 'Staff Engineer, Payments', status: 'screening', last_contact: '2026-03-20' }),
+  });
+  const input = { inbound: [
+    { company: 'Globex', role: 'Staff Engineer', date: '2026-03-25', evidence: 'globex.test, "A new role"', checks: pass, pay_range: '$200k' },
+    { company: 'Initech', role: 'Sr. Staff Engineer - Payments', date: '2026-03-26', evidence: 'initech.test, "About your application"', checks: pass },
+  ] };
+  const { text } = run({ paths: pathsFor(dir), input, today: TODAY });
+  assert.match(text, /- \*\*Inbound: Globex, Staff Engineer\*\* \(Mar 25\)/);
+  assert.doesNotMatch(read(dir, 'old'), /check-status/);
+  assert.match(read(dir, 'open'), /last_contact: 2026-03-26\n/);
+  assert.doesNotMatch(text, /Inbound: Initech/);
+});
+
+test('review fixes: line breaks from email fold into one frontmatter line, and a flag with no value is refused', () => {
+  assert.match(updateFrontmatter('---\nrole: x\n---\n', { role: 'Senior Engineer\nRemote: yes' }), /^---\nrole: "Senior Engineer Remote: yes"\n---\n$/);
+  const dir = dataDir({});
+  const r = spawnSync('node', [SCRIPT, 'window', '--today'], { env: { ...process.env, JOB_SEARCH_DATA_DIR: dir }, encoding: 'utf8' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--today needs a value/);
+});

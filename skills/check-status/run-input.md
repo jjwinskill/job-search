@@ -44,7 +44,7 @@ Dates are `YYYY-MM-DD` in the candidate's local time. Gmail's dates are UTC, so 
 
 ## `inbound`: a recruiter bringing a role the candidate hasn't applied to
 
-Fields as in `events`, plus `from` (who wrote, in a few words: "a recruiter at Randstad, by InMail") and the five judgments against the criteria file. `company` is the employer; when an agency writes for a client it doesn't name, it is the agency's name and "client" ("Randstad client"), because it becomes a folder name.
+Fields as in `events`, plus `from` (who wrote, in a few words: "a recruiter at Acme Staffing, by InMail") and the five judgments against the criteria file. `company` is the employer; when an agency writes for a client it doesn't name, it is the agency's name and "client" ("Acme Staffing client"), because it becomes a folder name.
 
 | Check | Values |
 |---|---|

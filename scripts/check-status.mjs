@@ -128,17 +128,25 @@ export function quietNote(fields, today) {
 
 // ---- Inbound screening ----
 
-// The top of a posted range, per year. Hourly rates count as 2,080 hours. null when nothing parses.
+// The top of a posted range, per year. Hourly rates count as 2,080 hours, monthly ones as 12 months.
+// Only dollar amounts count when the text has any, so "401k" or "10% bonus" can't pose as pay. null when nothing parses.
 export function parsePayTop(range) {
   if (!range) return null;
-  const text = String(range).toLowerCase().replaceAll(',', '');
+  const text = String(range).toLowerCase().replaceAll(',', '').replace(/401\s*\(?k\)?/g, '');
   const hourly = /\/\s*h(ou)?r\b|per hour|hourly|an hour/.test(text);
-  const values = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(k|m)?/g)]
-    .map(([, n, unit]) => Number(n) * (unit === 'k' ? 1e3 : unit === 'm' ? 1e6 : 1))
-    .filter((v) => v > 0);
+  const monthly = /\/\s*mo(nth)?\b|per month|monthly|a month/.test(text);
+  const amounts = [...text.matchAll(/(\$)?\s*(\d+(?:\.\d+)?)(?![\d.])\s*(k\b|m\b)?(?!\s*%)/g)]
+    .map(({ 1: dollar, 2: n, 3: unit, index }) => ({
+      // The far end of a range ("$85-95") carries the first end's dollar sign.
+      dollar: !!dollar || /\$\s*[\d.]+\s*[km]?\s*(-|–|—|to)\s*$/.test(text.slice(0, index)),
+      value: Number(n) * (unit?.[0] === 'k' ? 1e3 : unit?.[0] === 'm' ? 1e6 : 1),
+    }))
+    .filter((a) => a.value > 0);
+  const values = (amounts.some((a) => a.dollar) ? amounts.filter((a) => a.dollar) : amounts).map((a) => a.value);
   if (!values.length) return null;
   const top = Math.max(...values);
   if (hourly) return Math.round(top * 2080);
+  if (monthly) return Math.round(top * 12);
   return top < 1000 ? top * 1000 : top;
 }
 
@@ -150,7 +158,7 @@ export function payFloor(criteriaText) {
   return m[2] ? n * 1000 : n;
 }
 
-const money = (n) => (n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`);
+const money = (n) => (n % 1000 === 0 ? `$${n / 1000}k` : `$${Math.round(n).toLocaleString('en-US')}`);
 
 // The skill judges each criterion; this turns the judgments into an outcome. Any fail screens the Inbound out.
 // Contracts, unverified senders, unknowns and a missing pay range are flagged, never rejected.
@@ -217,9 +225,21 @@ export function matchApplication(apps, { company, role, date, type }) {
     .map((a) => ({ a, score: role ? roleSimilarity(role, a.fields.role) : 0.5 }))
     .sort((p, q) => q.score - p.score);
   const [best, second] = scored;
-  if (type === 'applied' && role && best.score < 0.2) return { none: true };
+  if (type === 'applied' && role && best.score < 0.2) {
+    // A confirmation where exactly one record awaits one is that record, however the ATS words the role.
+    const waiting = candidates.filter((a) => a.fields.status === 'drafted' || a.fields.status === 'inbound');
+    return waiting.length === 1 ? { app: waiting[0] } : { none: true };
+  }
   if (!second || best.score - second.score >= 0.2) return { app: best.a };
   return { ambiguous: scored.map((s) => s.a.folder) };
+}
+
+// The same role in two titles: the same words, or the same distinctive words. Stricter than matching,
+// because a recruiter's new role at a known company must not vanish into an old Application.
+export function sameRole(a, b) {
+  if (words(a).join(' ') === words(b).join(' ')) return true;
+  const x = words(a).filter((w) => !ROLE_NOISE.has(w));
+  return x.length > 0 && roleSimilarity(a, b) === 1;
 }
 
 // ---- reading and writing records ----
@@ -229,8 +249,9 @@ export function slugify(text, max = 60) {
   return slug.length > max ? slug.slice(0, max).replace(/-+$/, '') : slug;
 }
 
+// Values come from email, so line breaks and tabs fold to spaces: the frontmatter stays one line per key.
 const fmValue = (value) => {
-  const s = String(value ?? '');
+  const s = String(value ?? '').replace(/[\r\n\t\v\f\u2028\u2029]+/g, ' ');
   return /[:#]/.test(s) || s !== s.trim() || s.startsWith('"') ? JSON.stringify(s) : s;
 };
 
@@ -409,7 +430,9 @@ export function run({ paths, input, today, dryRun = false }) {
   }
 
   for (const item of input.inbound ?? []) {
-    const existing = matchApplication(apps, { ...item, type: 'applied' });
+    // A recruiter writing about a role already on record is mail about it. Anything else is a new Inbound to screen.
+    const existing = { app: apps.find((a) => OPEN.includes(a.fields.status)
+      && sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? '')) };
     if (existing.app) {
       const e = { type: 'contact', date: item.date, evidence: item.evidence };
       if (!existing.app.isNew) matched.add(existing.app.folder);
@@ -606,6 +629,7 @@ function option(args, flag) {
   const i = args.indexOf(flag);
   if (i === -1) return undefined;
   const value = args[i + 1];
+  if (value === undefined || value.startsWith('--')) throw new InputError(`${flag} needs a value`);
   args.splice(i, 2);
   return value;
 }

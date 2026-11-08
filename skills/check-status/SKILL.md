@@ -33,7 +33,7 @@ The judgment is yours: what each email is, which Application it belongs to, whet
    Decide from the sender, subject and snippet. Open a thread (`get_thread`, plain text) only when its type turns on the body: "Update on your application" can be an interview or a rejection. Give an event's `folder` when the mail plainly belongs to a listed Application; otherwise its company and role as the mail names them.
    - *Done when* every thread is in one bucket and every event has a type, a date and evidence.
 
-4. **Screen Inbound** against the criteria file. Judge `level`, `focus`, `location` and `type` from the message and any linked posting.
+4. **Screen Inbound** against the criteria file. Judge `level`, `focus`, `location` and `type` from the message and any linked JD.
    - **Legitimacy:** `pass` when the sender's domain belongs to the company or a real recruiting agency. Otherwise, when the message names the company, search the web once for the role on its own careers page or job board: found is `pass`, not found is `unverified`. A LinkedIn InMail has no sender domain, and one for an unnamed client is `unverified` without a search.
    - Put the posted range in `pay_range` as written; the script applies the floor.
    - *Done when* every Inbound carries all five checks, with a reason for each `fail`.
