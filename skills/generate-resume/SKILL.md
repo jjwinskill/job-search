@@ -14,7 +14,7 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
 
 ## Steps
 
-1. **Set up.** Run `node <plugin>/scripts/config.mjs` for the data folder. Read, in full, `super-resume.md`, `lessons.md` and `do-not-use.md`, and `criteria.md` if it exists. Note the Super Resume's version: `git -C <data> log -1 --format=%h -- super-resume.md`, and warn if `super-resume.md` has uncommitted changes.
+1. **Set up.** A run belongs in a fresh session, because every call carries the whole conversation. If this one already holds other work, say so in one line (a fresh session costs far less) and carry on. Run `node <plugin>/scripts/config.mjs` for the data folder. Read, in full, `super-resume.md`, `lessons.md` and `do-not-use.md`, and `criteria.md` if it exists. Note the Super Resume's version: `git -C <data> log -1 --format=%h -- super-resume.md`, and warn if `super-resume.md` has uncommitted changes.
    - *Done when* the Super Resume is in context in full and you have its version.
 
 2. **Intake.** Save the JD before anything else.
@@ -54,8 +54,8 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
 7. **Skim check.** Count the Applications whose frontmatter has this `template` hash and `skim_check: pass` (the hash is in the render report). Under five, send the Skim check brief with `<tmp>/page1.png`, and record `skim_check: pass` or `fail` in `application.md`. A fail is a template problem: report it, don't work around it in this resume.
    - *Done when* the check ran, or five passes on this template made it unnecessary.
 
-8. **Parse check.** Render with `--text <app>/resume.txt`, send the Parse check brief, then run the command under it, which checks the agent's form and the JD terms against the PDF's text, what an ATS reads. Fix each mismatch and each missing term in the source and re-render; if one can't be fixed in the source, report it.
-   - *Done when* the form matches the fact blocks and every supported must-have appears in the PDF's text, or what remains is in the report.
+8. **Parse check.** Render with `--text <app>/resume.txt`, then run `node <plugin>/scripts/check-resume.mjs <app>/resume.md --terms <app>/terms.txt --text <app>/resume.txt`, which checks the JD terms against the PDF's text, what an ATS reads. When step 7 sent the Skim check (the template is still unproven), also send the Parse check brief and add `--form <form.json>` to that command, so the agent's form is checked against the fact blocks too. Fix each mismatch and each missing term in the source and re-render; if one can't be fixed in the source, report it.
+   - *Done when* every supported must-have appears in the PDF's text and, if the brief ran, the form matches the fact blocks; or what remains is in the report.
 
 9. **Record.** Final render: `node <plugin>/scripts/render-resume.mjs <app>/resume.md --text <app>/resume.txt` must exit 0. Add `super_resume_version` and `template` to `application.md`, and one body line: the date and that `/generate-resume` made it. Write `<app>/gaps.md` with the Gap Note questions. Rebuild the index with `node <plugin>/scripts/build-index.mjs`. If the data folder is a git repo, commit the Application folder and the index as `Generate resume: <company>, <role>`.
    - *Done when* the commit exists (or the files are written, outside git).

@@ -4,7 +4,7 @@ Each brief is the whole prompt for a fresh subagent, so it inherits nothing from
 
 ## Company Research
 
-Model: opus. Agent type: one with web search and web fetch.
+Model: sonnet. Agent type: one with web search and web fetch.
 
 > Research <company> for a candidate applying to the role in <jd.md>. Read the JD first. Gather, with a link for every item:
 >
@@ -12,6 +12,8 @@ Model: opus. Agent type: one with web search and web fetch.
 > 2. **The last twelve months of news:** launches, funding, acquisitions, layoffs, leadership changes.
 > 3. **Other JDs from the same company, above all the same team or org.** They flesh out a thin JD: the team's problems, stack, stage and seniority bar. Fetch a posting with `node <plugin>/scripts/fetch-jd.mjs <url>` (it prints the posting); use web search to find them.
 > 4. **The product this team builds:** who uses it, its main surfaces, its scale, and what goes wrong when it's built badly.
+>
+> Fetch at most ten pages in all; search results don't count. Choose the pages that answer the most items, and let a thin section stay thin.
 >
 > Write `<research.md>` with one section per item, then `## What this means for the hire`: three to five lines on the problems this hire would own. Keep it under about 1,200 words. State facts plainly, mark inference as inference, and write "nothing found" for an empty section rather than padding it. *Done when* every claim has a link or is marked as inference. Reply with one line saying what you found.
 
@@ -77,7 +79,7 @@ It passes when line 1 names the Employer and line 3 calls no client an employer.
 
 ## Parse check
 
-Model: sonnet. No web.
+Model: sonnet. No web. Sent only while the template is unproven (step 8).
 
 > You are the resume parser in an applicant tracking system. Read only <resume.txt>, the text extracted from a resume PDF, and fill in the application form an auto-fill would produce. Take every value from the text alone, and leave a field empty when the text doesn't give it. Write this JSON to <form.json>:
 >
