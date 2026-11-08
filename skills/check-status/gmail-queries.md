@@ -1,34 +1,44 @@
 # Finding job mail in Gmail
 
-Reference for `/job-search:check-status`. These query patterns worked on a real six-month sweep. Statuses and their meanings are in `GLOSSARY.md`, and the record fields are in `docs/data-layout.md`. Use those, not your own words.
-
-## Window
-
-- **No history yet** (no `reports/` in the data folder): sweep the last 6 months.
-- **History exists:** fetch only mail since the date of the newest report. Re-sweeping old mail costs hundreds of thousands of tokens and finds nothing new.
-
-## Cheapest first
-
-1. Search with `THREAD_VIEW_SUMMARY` and read the subject, sender and snippet. Most confirmations and rejections can be decided from those three.
-2. Open a full thread (`get_thread`) only when the status depends on the body. For example, a subject like "Update on your application" can mean an interview or a rejection.
-3. Read-only, always: never send, draft, label, archive or delete.
+Reference for `/job-search:check-status`, from a real six-month sweep and a one-week test. Read-only, always: search, read and list labels, nothing else.
 
 ## Queries
 
-Add `after:YYYY/MM/DD` for the window. `in:anywhere` includes archived mail.
+Add the window's `after:` term to each. Archived mail is searched by default.
 
 | Looking for | Query |
 |---|---|
 | Confirmations | `subject:(applying OR application OR "application received") -category:promotions` |
-| ATS senders | `from:(greenhouse-mail.io OR ashbyhq.com OR myworkday.com OR myworkdayjobs.com OR smartrecruiters.com OR icims.com OR workablemail.com OR gem.com OR lever.co OR successfactors.com OR taleo.net OR jobvite.com OR amazon.jobs OR governmentjobs.com OR newtonsoftware.com)` |
-| Rejections | `(unfortunately OR "not moving forward" OR "other candidates" OR "decided to pursue")` |
-| Interviews | `(interview OR schedule OR calendly OR goodtime OR "next steps")` |
-| Offers | `(offer OR "offer letter")` |
-| Recruiter outreach | `from:linkedin.com ("messaged you" OR InMail OR "sent you a message")`, plus direct mail from people with recruiting titles |
-| Indeed | `from:indeed.com subject:"Indeed Application"`. These confirmations name the role but not the employer. |
+| ATS senders | `from:(greenhouse-mail.io OR greenhouse.io OR ashbyhq.com OR myworkday.com OR myworkdayjobs.com OR smartrecruiters.com OR icims.com OR workablemail.com OR gem.com OR lever.co OR successfactors.com OR taleo.net OR jobvite.com OR amazon.jobs OR governmentjobs.com OR newtonsoftware.com OR rippling.com)` |
+| Rejections | `(unfortunately OR "not moving forward" OR "move forward" OR "other candidates" OR "decided to pursue") -category:promotions -category:social` |
+| Interviews | `subject:(interview OR interviews OR "next steps" OR availability OR scheduling OR scheduled OR onsite OR "phone screen" OR assessment OR "take home") -category:promotions -category:social` |
+| Offers | `offer -category:promotions -category:updates -category:social -category:forums` |
+| LinkedIn messages | `from:linkedin.com ("messaged you" OR InMail OR "sent you a message")` |
+| Recruiters writing directly | `(role OR position OR opportunity OR hiring) ("your background" OR "your experience" OR "your profile" OR "reaching out" OR "came across" OR "a client" OR "my client" OR "our client" OR "appeal to you" OR "open to") -category:promotions -category:social -from:(linkedin.com OR indeed.com OR glassdoor.com OR ziprecruiter.com OR substack.com)` |
+| Indeed | `from:indeed.com subject:"Indeed Application"` |
+
+Why they're shaped this way, from two months of real mail:
+- **Interviews match on the subject.** The same words in the body matched 200 newsletters and prep-course mail in two months; in the subject, 63 threads.
+- **Offers search the Primary tab only,** by excluding the other tabs: the connector ignores `category:primary`. `offer` anywhere else matches every sale, and narrow phrases ("offer letter") missed a real offer worded "the offer we presented".
+- **Direct recruiters need a role word and an outreach phrase.** Either alone matched 200 threads in two months. Agency mail often says "we have a client" rather than naming the employer.
+
+## Reading cheaply
+
+1. The summary view shows each thread's newest message, and that is often enough: confirmations and most rejections are clear from the sender, subject and snippet.
+2. When the newest message is the candidate's own reply (`labelIds` has `SENT`) and the thread has more, open it with `get_thread` in the `MINIMAL` format: every message's subject and snippet, no bodies. "Thanks for letting me know" under "Update on your interview" is a rejection, and the employer's message says so.
+3. Open a body (`PLAIN_TEXT`) only when the snippets still leave the type open.
+
+## What the mail looks like
+
+- **Parent and brand names differ.** A subsidiary's interviews can arrive under its parent's name ("Interview with <parent>"), from the ATS or a calendar invite. Match on the sender's domain and the role title, and give the `folder`.
+- **The candidate's own mail** counts only as a withdrawal. Their thank-yous, follow-ups and scheduling replies are skipped, though the employer messages in the same thread count.
+- **Calendar invites and ATS reminders** for an interview are `interviewing` events.
+- **LinkedIn message notifications** carry no message text, only the sender's name, and the body (`PLAIN_TEXT`) adds their headline. A recruiting or talent headline is outreach to screen. Anyone else (a peer engineer, a friend) is skipped.
+- **Indeed confirmations** name the role but not the employer. The company is "Unknown (via Indeed)" unless the employer's own confirmation arrived within minutes, in which case they are one Application.
+- **Noise the queries can't exclude:** interview-prep services, job-board community digests, account notices from sites the candidate signed into. Skip them and count them.
 
 ## Known limits
 
-- **Spam can't be read.** The connector filters it out, so `in:spam` returns nothing even when the folder isn't empty. Every report reminds the user to check spam by hand for recruiter outreach since the last report. A filter for known domains isn't enough, because real recruiters from new startups won't be on any list.
-- **Rejections that went elsewhere.** Some employers reject only inside their own portal. No email doesn't mean no outcome, so ask the user before calling a long silence `ghosted` when they remember otherwise.
-- **LinkedIn notifications show only part of a message.** Replies sent inside LinkedIn never reach Gmail.
+- **Spam can't be read.** The connector filters it out, so `in:spam` returns nothing even when the folder isn't empty. Every report tells the candidate to check spam by hand since the last report. A filter for known domains isn't enough, because real recruiters from new startups won't be on any list.
+- **Rejections that never reach email.** Some employers reject only inside their own portal, so no email doesn't mean no outcome. The 30-day rule marks the silence `ghosted`; the candidate corrects it with `set` when they know otherwise.
+- **LinkedIn replies stay in LinkedIn.** A conversation continued there never reaches Gmail.
