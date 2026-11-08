@@ -33,9 +33,9 @@ Why they're shaped this way, from two months of real mail:
 - **Parent and brand names differ.** A subsidiary's interviews can arrive under its parent's name ("Interview with <parent>"), from the ATS or a calendar invite. Match on the sender's domain and the role title, and give the `folder`.
 - **The candidate's own mail** counts only as a withdrawal. Their thank-yous, follow-ups and scheduling replies are skipped, though the employer messages in the same thread count.
 - **Calendar invites and ATS reminders** for an interview are `interviewing` events.
-- **LinkedIn message notifications** carry no message text, only the sender's name, and the body (`PLAIN_TEXT`) adds their headline. A recruiting or talent headline is outreach to screen. Anyone else (a peer engineer, a friend) is skipped.
+- **LinkedIn message notifications** carry no message text, only the sender's name, and the body (`PLAIN_TEXT`) adds their headline. A recruiting or talent headline is outreach to screen. Anyone else (a peer engineer, a friend) is skipped. One message can send a notification a day for a week: record it once, at its first date, and count the rest as skipped. When it names no role or company, it is unmatched ("recruiter, no role named"), so the candidate can read it in LinkedIn.
 - **Indeed confirmations** name the role but not the employer. The company is "Unknown (via Indeed)" unless the employer's own confirmation arrived within minutes, in which case they are one Application.
-- **Noise the queries can't exclude:** interview-prep services, job-board community digests, account notices from sites the candidate signed into. Skip them and count them.
+- **Noise the queries can't exclude:** interview-prep services, newsletters that happen to say "unfortunately" or "assessment", job-board community digests, government employment-program mail, account notices from sites the candidate signed into. Skip them and count them.
 
 ## Known limits
 

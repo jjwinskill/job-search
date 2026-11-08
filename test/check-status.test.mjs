@@ -272,6 +272,32 @@ test('mail that could be either of two Applications is unmatched, unless it chan
   assert.match(again.text, /- globex\.test, "Following up" \(Mar 20\): could be globex-a or globex-b\./);
 });
 
+test('Needs you drops actions from old mail or closed Applications, and groups Inbound over 30 days old', () => {
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  const dir = dataDir({
+    closed: app({ company: 'Globex', role: 'Staff Engineer', status: 'rejected', last_contact: '2026-03-20' }),
+    open: app({ company: 'Initech', role: 'Platform Engineer', status: 'screening', last_contact: '2026-03-25' }),
+  });
+  const input = {
+    events: [
+      { folder: 'closed', type: 'screening', date: '2026-03-05', evidence: 'globex.test, "Assessment"', action: 'Take the assessment' },
+      { folder: 'open', type: 'screening', date: '2026-03-10', evidence: 'initech.test, "Old ask"', action: 'An old ask' },
+      { folder: 'open', type: 'interviewing', date: '2026-03-27', evidence: 'initech.test, "Panel"', action: 'Pick a panel time' },
+      { folder: 'open', type: 'contact', date: '2026-03-28', evidence: 'initech.test, "Reminder"', action: 'Confirm the panel time' },
+    ],
+    inbound: [
+      { company: 'Acme', role: 'Frontend Engineer', date: '2026-01-10', evidence: 'a', checks: pass },
+      { company: 'Hooli', role: 'Platform Engineer', date: '2026-02-01', evidence: 'b', checks: pass },
+      { company: 'Vandelay', role: 'Staff Engineer', date: '2026-03-25', evidence: 'c', checks: pass },
+    ],
+  };
+  const { text } = run({ paths: pathsFor(dir), input, today: TODAY, dryRun: true });
+  assert.doesNotMatch(text, /Take the assessment|An old ask|Pick a panel time/);
+  assert.match(text, /- \*\*Initech, Platform Engineer\*\* \(interviewing\): Confirm the panel time \(Mar 28\)\./);
+  assert.match(text, /- \*\*Inbound: Vandelay, Staff Engineer\*\* \(Mar 25\)/);
+  assert.match(text, /- \*\*2 older Inbound\*\* \(Jan 10 to Feb 1\), over 30 days old: Acme, Frontend Engineer; Hooli, Platform Engineer\. Pass on all of them, or name any to pursue\?/);
+});
+
 test('an Application nearing 30 days shows under Going quiet with the date it flips', () => {
   const dir = dataDir({ a: app({ applied: '2026-03-05', last_contact: '2026-03-05', created: '2026-03-05' }) });
   const { text } = run({ paths: pathsFor(dir), input: {}, today: TODAY });

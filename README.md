@@ -2,7 +2,7 @@
 
 A Claude Code plugin for a job search. You keep one exhaustive record of your career, called the Super Resume. The plugin turns it into a resume for a specific job description, tracks your applications, and reads your inbox for replies and recruiter outreach.
 
-**Status:** pre-v1, under construction. `generate-resume`, `edit-resume` and `update-super-resume` work; `check-status` is a stub.
+**Status:** pre-v1, under construction. `generate-resume`, `edit-resume`, `update-super-resume` and `check-status` work.
 
 | Command | What it does |
 |---|---|

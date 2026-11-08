@@ -19,6 +19,8 @@ import { ConfigError, loadConfig } from './config.mjs';
 export const GHOST_DAYS = 30;
 // When an open Application shows up under "Going quiet": days since it was last heard from (drafted: since created).
 export const QUIET_DAYS = { applied: 21, active: 14, drafted: 7 };
+// Inbound older than this is listed together in Needs you rather than one line each.
+export const STALE_INBOUND_DAYS = 30;
 export const FIRST_RUN_MONTHS = 6;
 export const EVENT_TYPES = ['applied', 'screening', 'interviewing', 'offer', 'rejected', 'withdrawn', 'contact'];
 const RANK = { inbound: 0, drafted: 1, applied: 2, screening: 3, interviewing: 4, offer: 5 };
@@ -267,7 +269,7 @@ export function loadApplications(applicationsDir) {
     const fields = parseFrontmatter(text);
     if (!fields) continue;
     const start = [fields.created, fields.applied].filter((d) => DATE.test(d ?? '')).sort()[0] ?? '';
-    apps.push({ folder: entry.name, file, text, fields, start, updates: {}, notes: [] });
+    apps.push({ folder: entry.name, file, text, fields, start, heardBefore: heardFrom(fields), updates: {}, notes: [] });
   }
   return apps.sort((a, b) => (b.fields.created ?? '').localeCompare(a.fields.created ?? '') || a.folder.localeCompare(b.folder));
 }
@@ -359,7 +361,7 @@ export function run({ paths, input, today, dryRun = false }) {
   const apps = loadApplications(paths.applications);
   const initial = new Map(apps.map((a) => [a.folder, a.fields.status]));
   const window = mailWindow(paths.reports, today);
-  if (input.since) Object.assign(window, { since: input.since, firstRun: false });
+  if (input.since && input.since !== window.since) Object.assign(window, { since: input.since, firstRun: false });
   const floor = existsSync(paths.criteria) ? payFloor(readFileSync(paths.criteria, 'utf8')) : null;
   const log = { needsYou: [], conflicts: [], screenedOut: [], unmatched: [], inbound: [] };
   const matched = new Set();
@@ -486,17 +488,32 @@ export function renderReport({ today, window, input, apps, log, changed, counts 
   const summary = `${tallies[0].toUpperCase()}${tallies.slice(1)}`;
 
   const needsYou = [`- **Check spam by hand** for recruiter mail since ${fmt(window.since)}: the Gmail connector can't read the spam folder.`];
+  // Inbound over a month old (a first run's backlog) shares one line, so fresh ones stand out.
+  const stale = [];
   for (const { app, item, flags } of log.inbound) {
+    if (daysBetween(item.date, today) > STALE_INBOUND_DAYS) { stale.push(app); continue; }
     const details = [item.pay_range || 'pay not posted', item.location || 'location not given', ...flags.filter((f) => f !== 'pay unknown')];
     needsYou.push(`- **Inbound: ${name(app)}**${item.from ? ` from ${item.from}` : ''} (${fmt(item.date)}): ${details.join('; ')}. Generate a resume, or pass?`);
   }
   for (const app of apps) {
     if (app.isNew || app.fields.status !== 'inbound') continue;
+    if (daysBetween(app.fields.created, today) > STALE_INBOUND_DAYS) { stale.push(app); continue; }
     needsYou.push(`- **Inbound: ${name(app)}** (since ${fmt(app.fields.created)}): still waiting on you. Generate a resume, or pass?`);
   }
-  for (const { app, text, date } of log.needsYou) needsYou.push(`- ${bold(app)} (${app.fields.status}): ${text} (${fmt(date)}).`);
+  if (stale.length) {
+    const dates = stale.map((a) => a.fields.created).sort();
+    const span = dates[0] === dates.at(-1) ? fmt(dates[0]) : `${fmt(dates[0])} to ${fmt(dates.at(-1))}`;
+    needsYou.push(`- **${stale.length} older Inbound** (${span}), over ${STALE_INBOUND_DAYS} days old: ${stale.map(name).join('; ')}. Pass on all of them, or name any to pursue?`);
+  }
+  // An action counts while its mail is news and the Application is still open; the newest one per Application.
+  const actions = new Map();
+  for (const n of log.needsYou) {
+    if (n.date < (n.app.heardBefore ?? '') || !OPEN.includes(n.app.fields.status)) continue;
+    if (!actions.has(n.app) || n.date >= actions.get(n.app).date) actions.set(n.app, n);
+  }
+  for (const { app, text, date } of actions.values()) needsYou.push(`- ${bold(app)} (${app.fields.status}): ${text} (${fmt(date)}).`);
   for (const c of changed) {
-    if (c.app.fields.status === 'offer' && !log.needsYou.some((n) => n.app === c.app)) {
+    if (c.app.fields.status === 'offer' && !actions.has(c.app)) {
       needsYou.push(`- ${bold(c.app)}: an offer arrived (${fmt(c.e?.date)}). It needs your answer.`);
     }
   }

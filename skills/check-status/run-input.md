@@ -1,6 +1,8 @@
 # The run input
 
-What `/job-search:check-status` hands to `scripts/check-status.mjs run`: one JSON object holding every job thread the search found, each placed in one of three lists. The script refuses input that breaks this shape and lists every problem. Dates are `YYYY-MM-DD` in the candidate's local time. Statuses are in `GLOSSARY.md`.
+What `/job-search:check-status` hands to `scripts/check-status.mjs run`: one JSON object holding every job thread the search found, each placed in one of three lists. The script refuses input that breaks this shape and lists every problem. Statuses are in `GLOSSARY.md`.
+
+Dates are `YYYY-MM-DD` in the candidate's local time. Gmail's dates are UTC, so evening mail in the Americas carries the next day's date: convert it. One event per email: a second confirmation or rejection for the same Application is harmless, because the script ignores mail it already reflects.
 
 ```json
 {
@@ -34,7 +36,7 @@ What `/job-search:check-status` hands to `scripts/check-status.mjs run`: one JSO
 
 ## `events`: mail about an Application
 
-- `type` is what the mail shows: `applied` (a confirmation), `screening` (a recruiter screen or an assessment before the team interviews), `interviewing` (interviews with the team, a take-home, an onsite), `offer`, `rejected` (declined, filled or closed), `withdrawn` (the candidate's own withdrawal), or `contact` (any other mail from the employer about it, such as a reschedule or "still reviewing").
+- `type` is what the mail shows: `applied` (a confirmation), `screening` (a recruiter screen, or an assessment invitation before the team interviews), `interviewing` (interviews with the team, a take-home, an onsite), `offer`, `rejected` (declined, filled or closed), `withdrawn` (the candidate's own withdrawal), or `contact` (any other mail from the employer about it: a reschedule, "still reviewing", a reminder, a referral notice, "keep track of your application").
 - `folder`: the Application, when the mail plainly belongs to one in the `apps` list. Otherwise give `company` and `role` as the mail names them: the script matches them, or creates a new Application when nothing matches.
 - `evidence`: the sender's domain and the subject, quoted. It goes into the Application's notes and the report.
 - `action`: only when the mail asks the candidate to do something (pick a time, take an assessment, answer an offer), in one short line.
@@ -42,7 +44,7 @@ What `/job-search:check-status` hands to `scripts/check-status.mjs run`: one JSO
 
 ## `inbound`: a recruiter bringing a role the candidate hasn't applied to
 
-Fields as in `events`, plus `from` (who wrote, in a few words) and the five judgments against the criteria file:
+Fields as in `events`, plus `from` (who wrote, in a few words: "a recruiter at Randstad, by InMail") and the five judgments against the criteria file. `company` is the employer; when an agency writes for a client it doesn't name, it is the agency's name and "client" ("Randstad client"), because it becomes a folder name.
 
 | Check | Values |
 |---|---|
@@ -56,4 +58,4 @@ Fields as in `events`, plus `from` (who wrote, in a few words) and the five judg
 
 ## `unmatched`: job mail that fits nowhere
 
-`evidence`, `date`, and `why` in a few words. The script adds the events it can't place itself, such as mail that could belong to either of two Applications.
+`evidence`, `date`, and `why` in a few words: a recruiter who names no role or company, or a confirmation that fits two Applications equally. The script adds the events it can't place itself.
