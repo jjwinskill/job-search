@@ -2,7 +2,7 @@
 
 A Claude Code plugin for a job search. You keep one exhaustive record of your career, called the Super Resume. The plugin turns it into a resume for a specific job description, tracks your applications, and reads your inbox for replies and recruiter outreach.
 
-**Status:** pre-v1, under construction. The commands below are stubs that say they aren't built yet.
+**Status:** pre-v1, under construction. `generate-resume`, `edit-resume` and `update-super-resume` work; `check-status` is a stub.
 
 | Command | What it does |
 |---|---|
@@ -11,13 +11,13 @@ A Claude Code plugin for a job search. You keep one exhaustive record of your ca
 | `/job-search:update-super-resume <what>` | Adds or corrects material in your Super Resume from Evidence, then reports each change for you to veto. It asks only what no source can settle. |
 | `/job-search:check-status` | Reads your email (read-only), updates application statuses, and screens recruiter outreach against your criteria. |
 
-The plugin holds no personal data. It reads and writes a private data folder that you point it at. The folder's layout is described in [docs/data-layout.md](docs/data-layout.md).
+The plugin holds no personal data. It reads and writes a private data folder that you point it at. The folder's layout is described in [docs/data-layout.md](docs/data-layout.md), and a Generated Resume's source format in [docs/resume-format.md](docs/resume-format.md).
 
 The vocabulary is defined in [GLOSSARY.md](GLOSSARY.md). More docs, including how to build a Super Resume and how this plugin grew out of an earlier n8n workflow, will be added before v1.
 
 ## Setup
 
-Requires Node 20 or later and the Claude Code CLI.
+Requires Node 20 or later, the Claude Code CLI, a Chromium-based browser (Chrome, Chromium, Edge or Brave) to print resumes, and Ghostscript (`brew install ghostscript`) to check their pages and text.
 
 1. Clone the repo and install the plugin from it. A plugin installed from a local marketplace runs straight from the clone, so pulling updates the plugin.
 
