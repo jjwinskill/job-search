@@ -1,6 +1,6 @@
 ---
 name: draft-cover-letter
-description: Draft a one-page cover letter for one Application from its Company Research, Job Thesis and the Super Resume, checked by fresh reviewers and rendered to PDF, for the candidate to rewrite in their own voice.
+description: Write a one-page Cover Letter Draft for one Application from its Company Research, Job Thesis and the Super Resume, checked by fresh reviewers and rendered to PDF, for the candidate to rewrite in their own voice.
 argument-hint: [application]
 disable-model-invocation: true
 model: opus

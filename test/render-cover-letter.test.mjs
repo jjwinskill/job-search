@@ -75,6 +75,22 @@ test('template and AI tells are warnings', () => {
   assert.doesNotMatch(warned(source.replace('of the same records.', 'of the same records — one dash is fine.')), /em dash/);
 });
 
+test('a stock closer in the sign-off and curly apostrophes are still caught', () => {
+  assert.match(warned(source.replace('Best,\nJane Doe', 'Thank you for your time and consideration,\nJane Doe')), /stock phrasing.*"thank you for your time and consideration"/);
+  assert.match(warned(source.replace("I'd like to help build", 'I’m excited to help build')), /stock phrasing.*"I'm excited"/);
+  assert.match(warned(source.replace('I traced the retries and made each charge safe to repeat.', 'It isn’t about speed, it’s about trust.')), /"not X but Y" turn/);
+});
+
+test('engineering terms of art are not AI vocabulary', () => {
+  assert.doesNotMatch(warned(source.replace('a stale cache', 'a stale cache behind dynamic pricing')), /AI-written/);
+});
+
+test('a sentence starting with a digit or a lowercase-led name is its own sentence', () => {
+  const twelve = 'one two three four five six seven eight nine ten eleven twelve';
+  const md = source.replace('I traced the retries and made each charge safe to repeat.', `I traced the retries ${twelve}. 26 more words came after ${twelve}. iOS users saw ${twelve}.`);
+  assert.doesNotMatch(warned(md), /-word sentence/);
+});
+
 test('a missing sign-off is a warning, not a problem', () => {
   const unsigned = check(source.replace(/Jane Doe\n$/, 'J.\n'));
   assert.match(unsigned.warnings.join('\n'), /doesn't end with the name/);
@@ -91,6 +107,12 @@ test('a rewrite lists the runs it kept from its draft', () => {
   const { kept } = check(rewrite, { draft: source });
   assert.ok(kept.some((run) => run.startsWith('at client a a developer tools company')), kept.join('\n'));
   assert.ok(!kept.some((run) => run.includes('climbing trip for three years')));
+});
+
+test('a kept run never spans two draft paragraphs', () => {
+  const draft = source.replace(/At Client C[^\n]+/, 'Alpha bravo charlie delta echo foxtrot.\n\nGolf hotel india juliet kilo lima.');
+  const rewrite = draft.replace('Alpha bravo charlie delta echo foxtrot.\n\nGolf hotel india juliet kilo lima.', 'Charlie delta echo foxtrot golf hotel india juliet.');
+  assert.deepEqual(check(rewrite, { draft }).kept.filter((run) => run.includes('foxtrot golf')), []);
 });
 
 test('the HTML keeps a paragraph\'s own line breaks; the paste-box text runs from the greeting to the name', () => {

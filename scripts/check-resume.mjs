@@ -321,7 +321,7 @@ export function parseTerms(text) {
   return terms;
 }
 
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SHORT = 3;
 // Whole words, in any form of the term; longer forms first so "React.js" isn't also counted as "React". A short form
 // ("Go", "C") matches only in its own case and never inside "C#" or "C++", so "go-to" doesn't count as Go.

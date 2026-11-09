@@ -24,10 +24,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COPY_RUN, candidateInfo, checkContact, copiedLines } from './check-resume.mjs';
+import { candidateInfo, checkContact, copiedLines, escapeRe } from './check-resume.mjs';
 import { ConfigError, loadConfig } from './config.mjs';
 import { SetupError, findChrome, pageCount, pageImage, printPdf } from './render-resume.mjs';
-import { inline, plain } from './resume-md.mjs';
+import { escapeHtml, inline, plain } from './resume-md.mjs';
 
 export const CSS_PATH = fileURLToPath(new URL('../templates/cover-letter.css', import.meta.url));
 
@@ -45,7 +45,8 @@ export const STOCK_PHRASES = [
   'great asset', 'great addition', 'dream job', 'industry-leading', 'world-class', 'innovative company', 'hit the ground running',
   'at your earliest convenience', 'thank you for your time and consideration', 'I believe I would', 'I am confident', "I'm confident",
 ];
-export const AI_VOCABULARY = /\b(delv\w*|testament|tapestr\w*|underscor\w*|pivotal|crucial|showcas\w*|vibrant|landscape|foster\w*|seamless\w*|meticulous\w*|realm|resonat\w*|dynamic)\b/gi;
+// Engineering terms of art (dynamic, landscape, robust) stay off this list: they're ordinary in a technical story.
+export const AI_VOCABULARY = /\b(delv\w*|testament|tapestr\w*|underscor\w*|pivotal|crucial|showcas\w*|vibrant|seamless\w*|meticulous\w*|realm|resonat\w*)\b/gi;
 export const CONTRAST_TURNS = [
   /\bnot (just|only|merely|simply)\b[^.!?]*\bbut\b/i,
   /\b(isn't|is not|wasn't|was not|aren't|are not)\s+(just\s+)?about\b[^.!?]*\b(it's|it is|it was|they're|but)\b/i,
@@ -104,9 +105,11 @@ export function parseLetter(markdown) {
 
 export const bodyParagraphs = (letter) => letter.paragraphs.filter((p) => p.kind === 'body').map((p) => plain(p.lines.join(' ')));
 export const countWords = (text) => (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’.-]*/gu) ?? []).length;
-const sentences = (text) => text.split(/(?<=[.!?])\s+(?=[A-Z"“(\[])/u).map((s) => s.trim()).filter(Boolean);
+// A sentence ends at . ! or ? before a capital, a digit, a quote or a bracket, or a lowercase-led name like iOS.
+const sentences = (text) => text.split(/(?<=[.!?])\s+(?=[\p{Lu}\p{N}"“'‘(\[]|\p{Ll}+\p{Lu})/u).map((s) => s.trim()).filter(Boolean);
+// Typographic apostrophes, as AI output often writes them, read as straight ones for the phrase checks.
+const straighten = (text) => text.replace(/[’‘]/g, "'");
 const clip = (s, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Problems, warnings and the body's word count.
@@ -131,13 +134,15 @@ export function checkLetter(letter, { info = null, sources = [], draft = null } 
   }
   const all = letter.paragraphs.map((p) => p.lines.join(' ')).join('\n');
   for (const spot of all.match(PLACEHOLDER) ?? []) warnings.push(`a marked spot is still unfilled: ${spot.length > 70 ? `${spot.slice(0, 70)}…]` : spot}`);
-  const prose = paragraphs.join('\n');
+  // The phrase checks also read the sign-off's closing line, where stock closers live; never the name under it.
+  const closing = letter.paragraphs.filter((p) => p.kind === 'sign-off').flatMap((p) => p.lines.slice(0, -1)).map(plain);
+  const prose = straighten([...paragraphs, ...closing].join('\n'));
   const lower = prose.toLowerCase();
   const stock = STOCK_PHRASES.filter((s) => new RegExp(`(?<![\\p{L}])${escapeRe(s.toLowerCase())}(?![\\p{L}])`, 'u').test(lower));
   if (stock.length) warnings.push(`stock phrasing a reader skims past: ${stock.map((s) => `"${s}"`).join(', ')}`);
   const vocab = [...new Set((prose.match(AI_VOCABULARY) ?? []).map((w) => w.toLowerCase()))];
   if (vocab.length) warnings.push(`words common in AI-written text: ${vocab.map((w) => `"${w}"`).join(', ')}; say it plainly`);
-  for (const s of paragraphs.flatMap(sentences)) {
+  for (const s of paragraphs.map(straighten).flatMap(sentences)) {
     if (CONTRAST_TURNS.some((re) => re.test(s))) warnings.push(`a "not X but Y" turn ("${clip(s, 50)}"); state the point directly`);
   }
   const trailing = prose.match(TRAILING_PARTICIPLE) ?? [];
@@ -149,11 +154,10 @@ export function checkLetter(letter, { info = null, sources = [], draft = null } 
       warnings.push(`"${clip(copy.line)}" shares ${copy.length} words in a row with ${source.name} ("${copy.run}"): write it from its plan line`);
     }
   }
-  const kept = draft ? copiedLines(paragraphs, bodyParagraphs(parseLetter(draft)).join('\n\n'), COPY_RUN).map((c) => c.run) : [];
+  // Each draft paragraph is matched on its own, so a kept run never spans two of them.
+  const kept = draft ? [...new Set(bodyParagraphs(parseLetter(draft)).flatMap((p) => copiedLines(paragraphs, p).map((c) => c.run)))] : [];
   return { problems, warnings, words, kept };
 }
-
-const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function toHtml(letter, css = readFileSync(CSS_PATH, 'utf8')) {
   const out = [`<h1>${inline(letter.name)}</h1>`];

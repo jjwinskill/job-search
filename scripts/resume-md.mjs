@@ -125,7 +125,7 @@ export function parseResume(markdown) {
   return resume;
 }
 
-const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // The only inline Markdown a resume uses: links, **bold** and *italic*. Anything else prints as written.
 export function inline(text) {
