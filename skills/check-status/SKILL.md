@@ -25,18 +25,25 @@ The judgment is yours: what each email is, which Application it belongs to, whet
    - *Done when* every query has run to its last page.
 
 3. **Place each thread** in exactly one bucket, in the shape of [run-input.md](run-input.md):
-   - **event**: mail from an employer about one of the candidate's applications, or the candidate's own withdrawal.
-   - **inbound**: a recruiter bringing a role that isn't on the Application list.
+   - **event**: mail from an employer about one of the candidate's applications, or the candidate's own reply that withdraws from one or turns down a role on record.
+   - **inbound**: a recruiter, referrer or friend bringing a role that isn't on the Application list, one per role the thread names.
    - **unmatched**: job mail you can't place, with the reason.
-   - **skipped**: job alerts, newsletters, marketing, and the candidate's own mail other than a withdrawal. Count these.
+   - **skipped**: job alerts, newsletters, marketing. Count these.
 
-   Decide from the sender, subject and snippet. Open a thread (`get_thread`, plain text) only when its type turns on the body: "Update on your application" can be an interview or a rejection. Give an event's `folder` when the mail plainly belongs to a listed Application; otherwise its company and role as the mail names them.
-   - *Done when* every thread is in one bucket and every event has a type, a date and evidence.
+   Decide from the sender, subject and snippet, and open a thread (`get_thread`, plain text) when its meaning turns on the body: "Update on your application" can be an interview or a rejection.
+   - **The candidate's replies are part of the conversation.** Read the whole thread whenever they wrote in it: their no closes a role, their yes keeps it open with its next step, and their questions can bring out the role an intro left unnamed. Record it as the Inbound's `reply`, or as a `passed` or `withdrawn` event on a role already on record. Thank-yous and scheduling notes change nothing.
+   - **Recruiter threads keep their details in the first message.** The summary view shows the newest one, often a "last check-in", so open the thread before calling the role vague.
 
-4. **Screen Inbound** against the criteria file. Judge `level`, `focus`, `location` and `type` from the message and any linked JD.
-   - **Legitimacy:** `pass` when the sender's domain belongs to the company or a real recruiting agency. Otherwise, when the message names the company, search the web once for the role on its own careers page or job board: found is `pass`, not found is `unverified`. A LinkedIn InMail has no sender domain, and one for an unnamed client is `unverified` without a search.
-   - Put the posted range in `pay_range` as written; the script applies the floor.
-   - *Done when* every Inbound carries all five checks, with a reason for each `fail`.
+   Give an event's `folder` when the mail plainly belongs to a listed Application; otherwise its company and role as the mail names them.
+   - *Done when* every thread is in one bucket, every event has a type, a date and evidence, and every thread the candidate wrote in has been read whole.
+
+4. **Describe and screen each Inbound.** The candidate decides from the report alone, so every Inbound that passes screening gets an `about`: what the company does and what the role owns, in one or two sentences. The script refuses an Inbound without one.
+   - **Read the JD** when the message links one: `node <plugin>/scripts/fetch-jd.mjs <url> --out <tmp>/jd-<n>.md`. When it names the role without a link, find the posting on the company's careers page or a job board.
+   - **Pay:** when the message has no range, take the one the JD or another copy of the same posting gives, and say where it came from in `pay_range` ("$146k–$241k (the company's posting)"). When nothing posts one, write that in `about`, with a comparable posted range and its source.
+   - **Checks:** judge `level`, `focus`, `location` and `type` against the criteria file from the message and the JD.
+   - **Legitimacy:** `pass` when the sender's domain belongs to the company or a real recruiting agency or hiring platform, or the role is on the company's own careers page or job board. Otherwise `unverified`. A LinkedIn InMail has no sender domain, and one for an unnamed client is `unverified`.
+   - The script applies the pay floor, and it skips screening for an Inbound the candidate has already declined.
+   - *Done when* every Inbound carries all five checks, a reason for each `fail`, and an `about` unless it fails screening or was declined.
 
 5. **Apply.** Write the input to `<tmp>/input.json` and dry-run it: `node <plugin>/scripts/check-status.mjs run <tmp>/input.json --dry-run`.
    - Read every **Changed** line against its mail: a misread email shows up here as a wrong move. Fix the input and dry-run again.
@@ -49,7 +56,7 @@ The judgment is yours: what each email is, which Application it belongs to, whet
 
 7. **Follow up** on the candidate's answers. `set` writes the Status and a dated note, and rebuilds the index; commit after each.
    - **An Inbound to pursue:** they run `/job-search:generate-resume <source_url>` in a fresh session, which takes over the `inbound` record.
-   - **An Inbound to pass on:** `node <plugin>/scripts/check-status.mjs set <folder> passed --note "<their reason>"`.
+   - **An Inbound to pass on:** `node <plugin>/scripts/check-status.mjs set <folder> passed --note "<their reason>"`. Inbound last heard over 21 days ago is stale, and the report asks about it as a group.
    - **A correction**, such as "I applied on the 9th" or "they turned me down in their portal": `set <folder> <status> --date <date> --note "<what they said>"`.
 
 ## Data

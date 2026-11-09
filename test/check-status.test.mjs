@@ -185,7 +185,7 @@ function runFixture() {
       { company: 'Acme', role: 'Platform Engineer', type: 'applied', date: '2026-03-26', evidence: 'ats.test, "Thanks for applying to Acme"' },
     ],
     inbound: [
-      { company: 'Vandelay', role: 'Senior Full-Stack Engineer', date: '2026-03-30', from: 'a recruiter at vandelay.test', evidence: 'vandelay.test, "Your background"', pay_range: '$180k-$230k', location: 'Remote (US)', checks: pass },
+      { company: 'Vandelay', role: 'Senior Full-Stack Engineer', date: '2026-03-30', from: 'a recruiter at vandelay.test', evidence: 'vandelay.test, "Your background"', pay_range: '$180k-$230k', location: 'Remote (US)', about: 'Vandelay imports latex; the role owns its ordering app.', checks: pass },
       { company: 'Cheapco', role: 'Senior Engineer', date: '2026-03-30', evidence: 'cheapco.test, "Opportunity"', pay_range: '$110k-$140k', checks: pass },
     ],
     unmatched: [{ evidence: 'board.test, "Application received"', date: '2026-03-27', why: 'no employer named' }],
@@ -229,8 +229,8 @@ test('a run applies the mail, ghosts the silent, screens Inbound, and writes the
 
   // Inbound: one passes and gets a record, one is screened out with the reason.
   const inbound = readdirSync(join(dir, 'applications')).find((f) => f.includes('vandelay'));
-  assert.match(read(dir, inbound), /status: inbound\n[\s\S]*pay_range: \$180k-\$230k\n/);
-  assert.match(text, /- \*\*Inbound: Vandelay, Senior Full-Stack Engineer\*\* from a recruiter at vandelay\.test \(Mar 30\): \$180k-\$230k; Remote \(US\)\. Generate a resume, or pass\?/);
+  assert.match(read(dir, inbound), /status: inbound\n[\s\S]*pay_range: \$180k-\$230k\nabout: Vandelay imports latex; the role owns its ordering app\.\n/);
+  assert.match(text, /- \*\*Inbound: Vandelay, Senior Full-Stack Engineer\*\* from a recruiter at vandelay\.test \(Mar 30\)\. Generate a resume, or pass\?\n  - Vandelay imports latex; the role owns its ordering app\.\n  - Pay: \$180k-\$230k\. Location: Remote \(US\)\.\n/);
   assert.ok(!readdirSync(join(dir, 'applications')).some((f) => f.includes('cheapco')));
   assert.match(text, /## 5\. Screened out\n\n- \*\*Cheapco, Senior Engineer\*\* \(Mar 30\): pay: the top of the range, \$140k, is under the \$150k floor\./);
 
@@ -255,7 +255,7 @@ test('running the same mail again changes nothing, and a dry run writes nothing'
   const again = run({ paths, input, today: TODAY });
   assert.match(again.path, /2026-03-31-2\.md$/);
   assert.equal(readdirSync(join(dir, 'applications')).map((f) => read(dir, f)).join('\n'), before);
-  assert.match(again.text, /- \*\*Inbound: Vandelay, Senior Full-Stack Engineer\*\* \(since Mar 30\): still waiting on you\./);
+  assert.match(again.text, /- \*\*Inbound: Vandelay, Senior Full-Stack Engineer\*\* \(Mar 30\)\. Generate a resume, or pass\?\n  - Vandelay imports latex; the role owns its ordering app\.\n/);
 });
 
 test('mail that could be either of two Applications is unmatched, unless it changes neither', () => {
@@ -272,7 +272,7 @@ test('mail that could be either of two Applications is unmatched, unless it chan
   assert.match(again.text, /- globex\.test, "Following up" \(Mar 20\): could be globex-a or globex-b\./);
 });
 
-test('Needs you drops actions from old mail or closed Applications, and groups Inbound over 30 days old', () => {
+test('Needs you drops actions from old mail or closed Applications, and groups Inbound last heard over 21 days ago', () => {
   const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
   const dir = dataDir({
     closed: app({ company: 'Globex', role: 'Staff Engineer', status: 'rejected', last_contact: '2026-03-20' }),
@@ -286,16 +286,17 @@ test('Needs you drops actions from old mail or closed Applications, and groups I
       { folder: 'open', type: 'contact', date: '2026-03-28', evidence: 'initech.test, "Reminder"', action: 'Confirm the panel time' },
     ],
     inbound: [
-      { company: 'Acme', role: 'Frontend Engineer', date: '2026-01-10', evidence: 'a', checks: pass },
-      { company: 'Hooli', role: 'Platform Engineer', date: '2026-02-01', evidence: 'b', checks: pass },
-      { company: 'Vandelay', role: 'Staff Engineer', date: '2026-03-25', evidence: 'c', checks: pass },
+      { company: 'Acme', role: 'Frontend Engineer', date: '2026-01-10', evidence: 'a', checks: pass, about: 'Acme makes anvils.' },
+      { company: 'Hooli', role: 'Platform Engineer', date: '2026-03-09', evidence: 'b', checks: pass, about: 'Hooli does search.', location: 'Remote (US)' },
+      { company: 'Umbrella', role: 'Product Engineer', date: '2026-03-10', evidence: 'd', checks: pass, about: 'Umbrella does biotech.' },
+      { company: 'Vandelay', role: 'Staff Engineer', date: '2026-03-25', evidence: 'c', checks: pass, about: 'Vandelay imports latex.' },
     ],
   };
   const { text } = run({ paths: pathsFor(dir), input, today: TODAY, dryRun: true });
   assert.doesNotMatch(text, /Take the assessment|An old ask|Pick a panel time/);
   assert.match(text, /- \*\*Initech, Platform Engineer\*\* \(interviewing\): Confirm the panel time \(Mar 28\)\./);
-  assert.match(text, /- \*\*Inbound: Vandelay, Staff Engineer\*\* \(Mar 25\)/);
-  assert.match(text, /- \*\*2 older Inbound\*\* \(Jan 10 to Feb 1\), over 30 days old: Acme, Frontend Engineer; Hooli, Platform Engineer\. Pass on all of them, or name any to pursue\?/);
+  assert.match(text, /- \*\*Inbound: Vandelay, Staff Engineer\*\* \(Mar 25\)\. Generate a resume, or pass\?\n  - Vandelay imports latex\.\n  - Pay: not posted\. Location: not given\.\n- \*\*Inbound: Umbrella, Product Engineer\*\* \(Mar 10\)/);
+  assert.match(text, /- \*\*2 older Inbound\*\*, last heard over 21 days ago\. Pass on all of them, or name any to pursue\?\n  - \*\*Hooli, Platform Engineer\*\* \(Mar 9\): Hooli does search\. Pay: not posted\. Location: Remote \(US\)\.[^\n]*\n  - \*\*Acme, Frontend Engineer\*\* \(Jan 10\): Acme makes anvils\./);
 });
 
 test('an Application nearing 30 days shows under Going quiet with the date it flips', () => {
@@ -367,8 +368,8 @@ test('review fixes: a confirmation with odd wording finds the one drafted record
     open: app({ company: 'Initech', role: 'Staff Engineer, Payments', status: 'screening', last_contact: '2026-03-20' }),
   });
   const input = { inbound: [
-    { company: 'Globex', role: 'Staff Engineer', date: '2026-03-25', evidence: 'globex.test, "A new role"', checks: pass, pay_range: '$200k' },
-    { company: 'Initech', role: 'Sr. Staff Engineer - Payments', date: '2026-03-26', evidence: 'initech.test, "About your application"', checks: pass },
+    { company: 'Globex', role: 'Staff Engineer', date: '2026-03-25', evidence: 'globex.test, "A new role"', checks: pass, pay_range: '$200k', about: 'Globex makes widgets.' },
+    { company: 'Initech', role: 'Sr. Staff Engineer - Payments', date: '2026-03-26', evidence: 'initech.test, "About your application"', checks: pass, about: 'Initech does payments.' },
   ] };
   const { text } = run({ paths: pathsFor(dir), input, today: TODAY });
   assert.match(text, /- \*\*Inbound: Globex, Staff Engineer\*\* \(Mar 25\)/);
@@ -383,4 +384,54 @@ test('review fixes: line breaks from email fold into one frontmatter line, and a
   const r = spawnSync('node', [SCRIPT, 'window', '--today'], { env: { ...process.env, JOB_SEARCH_DATA_DIR: dir }, encoding: 'utf8' });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /--today needs a value/);
+});
+
+test('the candidate\'s replies: turning a role down is passing before applying and withdrawing after', () => {
+  assert.equal(nextStatus('inbound', 'passed', true).status, 'passed');
+  assert.equal(nextStatus('drafted', 'passed', true).status, 'passed');
+  assert.equal(nextStatus('applied', 'passed', true).status, 'withdrawn');
+  assert.equal(nextStatus('interviewing', 'passed', true).status, 'withdrawn');
+  assert.equal(nextStatus('ghosted', 'passed', true).status, 'withdrawn');
+  assert.deepEqual(nextStatus('rejected', 'passed', true), { status: 'rejected' });
+  const errors = validateInput({ inbound: [{ company: 'Acme', date: '2026-03-01', evidence: 'x', reply: { date: '3/2', decision: 'maybe' } }] });
+  assert.deepEqual(errors, [
+    'inbound[0]: reply.date must be YYYY-MM-DD',
+    'inbound[0]: reply.decision must be one of declined, interested',
+    'inbound[0]: reply.note is required',
+  ]);
+});
+
+test('the candidate\'s replies decide Inbound: a no closes it as passed, a yes stays open and says so', () => {
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  const dir = dataDir({
+    waiting: app({ company: 'Globex', role: 'Staff Engineer', status: 'inbound', created: '2026-03-20', applied: '', last_contact: '2026-03-20' }),
+  });
+  const input = {
+    since: '2026-03-01',
+    events: [{ company: 'Hooli', type: 'passed', date: '2026-03-21', evidence: 'your reply to hooli.test' }],
+    inbound: [
+      { company: 'Acme', role: 'Engineering referral', date: '2026-03-25', from: 'a friend at Acme', evidence: 'acme.test, "Introduction"',
+        location: 'San Francisco, 5 days in office', checks: { ...pass, location: 'fail' }, reasons: { location: 'SF only' },
+        reply: { date: '2026-03-26', decision: 'declined', note: "can't be in SF five days a week" } },
+      { company: 'Vandelay', role: 'Senior Engineer', date: '2026-03-27', evidence: 'vandelay.test, "Your background"', checks: pass,
+        about: 'Vandelay imports latex.', reply: { date: '2026-03-28', decision: 'interested', note: 'asked for a call next week' } },
+      { company: 'Globex', role: 'Staff Engineer', date: '2026-03-29', evidence: 'globex.test, "Following up"', about: 'Globex makes widgets.',
+        pay_range: '$190k-$240k (their careers page)', reply: { date: '2026-03-30', decision: 'declined', note: 'not looking at Globex' } },
+    ],
+  };
+  const { text } = run({ paths: pathsFor(dir), input, today: TODAY });
+  const acme = readdirSync(join(dir, 'applications')).find((f) => f.includes('acme'));
+  assert.match(read(dir, acme), /status: passed\n[\s\S]*2026-03-26: you replied \(declined\): can't be in SF five days a week\./);
+  assert.match(text, /- \*\*Acme, Engineering referral\*\*: new, passed \(Mar 26; your reply: can't be in SF five days a week\)\./);
+  assert.doesNotMatch(text, /Inbound: Acme|## 5\. Screened out\n\n- /);
+  assert.match(text, /- \*\*Inbound: Vandelay, Senior Engineer\*\* \(Mar 27\)\. Generate a resume\?\n  - Vandelay imports latex\.\n  - Pay: not posted\.[^\n]*\n  - You replied Mar 28: asked for a call next week\n/);
+  // A record from an earlier run gains the details it lacked, and the candidate's no closes it.
+  const waiting = read(dir, 'waiting');
+  assert.match(waiting, /status: passed\n/);
+  assert.match(waiting, /\nabout: Globex makes widgets\.\n/);
+  assert.match(waiting, /\npay_range: \$190k-\$240k \(their careers page\)\n/);
+  assert.match(waiting, /2026-03-29: added about, pay_range from globex\.test, "Following up" \(check-status\)\.\n2026-03-30: inbound → passed \(check-status\)\. Evidence: your reply: not looking at Globex\./);
+  assert.match(text, /- \*\*Globex, Staff Engineer\*\*: inbound → passed \(Mar 30; your reply: not looking at Globex\)\./);
+  // A no with nothing on record to close is unmatched, not a new Application.
+  assert.match(text, /- your reply to hooli\.test \(Mar 21\): no Application for Hooli\./);
 });

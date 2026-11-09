@@ -19,10 +19,12 @@ import { ConfigError, loadConfig } from './config.mjs';
 export const GHOST_DAYS = 30;
 // When an open Application shows up under "Going quiet": days since it was last heard from (drafted: since created).
 export const QUIET_DAYS = { applied: 21, active: 14, drafted: 7 };
-// Inbound older than this is listed together in Needs you rather than one line each.
-export const STALE_INBOUND_DAYS = 30;
+// An Inbound last heard from longer ago than this is stale: listed together in Needs you, after the fresh ones.
+export const STALE_INBOUND_DAYS = 21;
 export const FIRST_RUN_MONTHS = 6;
-export const EVENT_TYPES = ['applied', 'screening', 'interviewing', 'offer', 'rejected', 'withdrawn', 'contact'];
+// `passed` and `withdrawn` are the candidate's own replies: turning a role down before applying, or after.
+export const EVENT_TYPES = ['applied', 'screening', 'interviewing', 'offer', 'rejected', 'withdrawn', 'passed', 'contact'];
+export const REPLY_DECISIONS = ['declined', 'interested'];
 const RANK = { inbound: 0, drafted: 1, applied: 2, screening: 3, interviewing: 4, offer: 5 };
 const OPEN = Object.keys(RANK);
 const ACTIVE = ['screening', 'interviewing', 'offer'];
@@ -94,9 +96,11 @@ export function reportPath(reportsDir, today) {
 // Mail never moves a Status backward. Mail that would reopen a closed Application is a conflict for the candidate.
 export function nextStatus(current, type, newer) {
   if (CLOSED.includes(current)) {
-    if (['contact', 'rejected', 'withdrawn', current].includes(type)) return { status: current };
+    if (['contact', 'rejected', 'withdrawn', 'passed', current].includes(type)) return { status: current };
     return newer ? { status: current, conflict: true } : { status: current };
   }
+  // Turning a role down is passing on it until the candidate has applied, and withdrawing after.
+  if (type === 'passed') return { status: ['inbound', 'drafted'].includes(current) ? 'passed' : 'withdrawn' };
   if (current === 'ghosted') {
     if (type === 'applied' || type === 'contact') return { status: newer ? 'applied' : 'ghosted' };
     return { status: type };
@@ -276,7 +280,9 @@ export function appendNotes(text, notes) {
   return `${trimmed}${/\n---$/.test(trimmed) ? '\n\n' : '\n'}${notes.join('\n')}\n`;
 }
 
-const RECORD_KEYS = ['company', 'role', 'status', 'created', 'applied', 'last_contact', 'source_url', 'location', 'pay_range', 'origin'];
+const RECORD_KEYS = ['company', 'role', 'status', 'created', 'applied', 'last_contact', 'source_url', 'location', 'pay_range', 'about', 'origin'];
+// What an Inbound's later mail can fill in when the record lacks it.
+const DETAIL_KEYS = ['about', 'pay_range', 'location', 'source_url'];
 const newRecord = (fields) => `---\n${RECORD_KEYS.map((k) => `${k}: ${fmValue(fields[k])}`).join('\n')}\n---\n`;
 
 export function loadApplications(applicationsDir) {
@@ -309,7 +315,7 @@ function createApplication(apps, applicationsDir, fields, today, note) {
 }
 
 const name = (app) => [app.fields.company, app.fields.role].filter(Boolean).join(', ');
-const TYPE_WORDS = { applied: 'confirmation', screening: 'screening', interviewing: 'interview', offer: 'offer', rejected: 'rejection', withdrawn: 'withdrawal', contact: 'mail' };
+const TYPE_WORDS = { applied: 'confirmation', screening: 'screening', interviewing: 'interview', offer: 'offer', rejected: 'rejection', withdrawn: 'withdrawal', passed: 'decline', contact: 'mail' };
 
 function setField(app, key, value) {
   app.fields[key] = value;
@@ -367,6 +373,11 @@ export function validateInput(input) {
       const value = item?.checks?.[key];
       need(value === undefined || allowed.includes(value), where, `checks.${key} must be one of ${allowed.join(', ')}`);
     }
+    if (item?.reply !== undefined) {
+      need(DATE.test(item.reply?.date ?? ''), where, 'reply.date must be YYYY-MM-DD');
+      need(REPLY_DECISIONS.includes(item.reply?.decision), where, `reply.decision must be one of ${REPLY_DECISIONS.join(', ')}`);
+      need(typeof item.reply?.note === 'string' && item.reply.note.trim(), where, 'reply.note is required');
+    }
   });
   (Array.isArray(input.unmatched) ? input.unmatched : []).forEach((u, i) => {
     need(typeof u?.evidence === 'string' && u.evidence.trim(), `unmatched[${i}]`, 'evidence is required');
@@ -410,7 +421,7 @@ export function run({ paths, input, today, dryRun = false }) {
         continue;
       }
       if (m.app) app = m.app;
-      else if (e.type === 'contact') { log.unmatched.push({ ...e, why: `no Application for ${e.company}` }); continue; }
+      else if (e.type === 'contact' || e.type === 'passed') { log.unmatched.push({ ...e, why: `no Application for ${e.company}` }); continue; }
       else {
         app = createApplication(apps, paths.applications, {
           company: e.company, role: e.role ?? '', status: e.type, created: e.date,
@@ -429,25 +440,46 @@ export function run({ paths, input, today, dryRun = false }) {
     if (e.action) log.needsYou.push({ app, text: e.action, date: e.date });
   }
 
-  for (const item of input.inbound ?? []) {
-    // A recruiter writing about a role already on record is mail about it. Anything else is a new Inbound to screen.
-    const existing = { app: apps.find((a) => OPEN.includes(a.fields.status)
-      && sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? '')) };
-    if (existing.app) {
-      const e = { type: 'contact', date: item.date, evidence: item.evidence };
-      if (!existing.app.isNew) matched.add(existing.app.folder);
-      if (!applyEvent(existing.app, e).noop) lastEvent.set(existing.app.folder, e);
+  const undescribed = [];
+  for (const [i, item] of (input.inbound ?? []).entries()) {
+    const { reply } = item;
+    const declined = reply?.decision === 'declined' ? { type: 'passed', date: reply.date, evidence: `your reply: ${reply.note}` } : null;
+    const replyNote = reply ? ` ${reply.date}: you replied (${reply.decision}): ${reply.note}.` : '';
+    // A recruiter writing about a role already on record is mail about it: it fills in missing details, and the
+    // candidate's reply decides it. Anything else is a new Inbound to screen.
+    const existing = apps.find((a) => OPEN.includes(a.fields.status)
+      && sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? ''));
+    if (existing) {
+      if (!existing.isNew) matched.add(existing.folder);
+      const added = DETAIL_KEYS.filter((key) => item[key] && !existing.fields[key]);
+      for (const key of added) setField(existing, key, item[key]);
+      if (added.length) existing.notes.push(`${item.date}: added ${added.join(', ')} from ${item.evidence} (check-status).`);
+      const e = declined ?? { type: 'contact', date: item.date, evidence: item.evidence };
+      if (!applyEvent(existing, e).noop) lastEvent.set(existing.folder, e);
+      if (reply?.decision === 'interested') { existing.reply = reply; existing.notes.push(replyNote.trim()); }
+      continue;
+    }
+    const fields = {
+      company: item.company, role: item.role ?? '', status: 'inbound', created: item.date, applied: '', last_contact: item.date,
+      source_url: item.source_url ?? '', location: item.location ?? '', pay_range: item.pay_range ?? '', about: item.about ?? '',
+    };
+    const found = `${item.date}: Inbound${item.from ? ` from ${item.from}` : ''} (check-status). Evidence: ${item.evidence}.`;
+    // The candidate's own no settles it, whatever the criteria would have said.
+    if (declined) {
+      const app = createApplication(apps, paths.applications, { ...fields, status: 'passed' }, today, `${found}${replyNote}`);
+      firstEvent.set(app.folder, declined);
       continue;
     }
     const result = screen(item, floor);
     if (result.outcome === 'screened-out') { log.screenedOut.push({ ...item, reasons: result.reasons }); continue; }
+    // The candidate decides from the report alone, so every role put to them says what it is.
+    if (!item.about?.trim()) { undescribed.push(`inbound[${i}] (${item.company}): about is required for an Inbound that passes screening`); continue; }
     const flags = result.flags.length ? ` Flags: ${result.flags.join(', ')}.` : '';
-    const app = createApplication(apps, paths.applications, {
-      company: item.company, role: item.role ?? '', status: 'inbound', created: item.date, applied: '',
-      last_contact: item.date, source_url: item.source_url ?? '', location: item.location ?? '', pay_range: item.pay_range ?? '',
-    }, today, `${item.date}: Inbound${item.from ? ` from ${item.from}` : ''} (check-status). Evidence: ${item.evidence}.${flags}`);
+    const app = createApplication(apps, paths.applications, fields, today, `${found}${flags}${replyNote}`);
+    if (reply) app.reply = reply;
     log.inbound.push({ app, item, flags: result.flags });
   }
+  if (undescribed.length) throw new InputError(undescribed.join('\n'));
 
   const ghosted = new Map();
   for (const app of apps) {
@@ -511,22 +543,30 @@ export function renderReport({ today, window, input, apps, log, changed, counts 
   const summary = `${tallies[0].toUpperCase()}${tallies.slice(1)}`;
 
   const needsYou = [`- **Check spam by hand** for recruiter mail since ${fmt(window.since)}: the Gmail connector can't read the spam folder.`];
-  // Inbound over a month old (a first run's backlog) shares one line, so fresh ones stand out.
-  const stale = [];
-  for (const { app, item, flags } of log.inbound) {
-    if (daysBetween(item.date, today) > STALE_INBOUND_DAYS) { stale.push(app); continue; }
-    const details = [item.pay_range || 'pay not posted', item.location || 'location not given', ...flags.filter((f) => f !== 'pay unknown')];
-    needsYou.push(`- **Inbound: ${name(app)}**${item.from ? ` from ${item.from}` : ''} (${fmt(item.date)}): ${details.join('; ')}. Generate a resume, or pass?`);
-  }
-  for (const app of apps) {
-    if (app.isNew || app.fields.status !== 'inbound') continue;
-    if (daysBetween(app.fields.created, today) > STALE_INBOUND_DAYS) { stale.push(app); continue; }
-    needsYou.push(`- **Inbound: ${name(app)}** (since ${fmt(app.fields.created)}): still waiting on you. Generate a resume, or pass?`);
+  // Every open Inbound, described, so the candidate can decide from the report alone. Fresh ones one by one;
+  // stale ones (a first run's backlog) under one question.
+  const found = new Map(log.inbound.map(({ app, item, flags }) => [app, { from: item.from, flags }]));
+  const describe = (app) => {
+    const { about, pay_range: pay, location } = app.fields;
+    const flags = (found.get(app)?.flags ?? []).filter((f) => f !== 'pay unknown');
+    return [
+      about,
+      `Pay: ${pay || 'not posted'}. Location: ${location || 'not given'}.${flags.length ? ` Flags: ${flags.join(', ')}.` : ''}`,
+      app.reply && `You replied ${fmt(app.reply.date)}: ${app.reply.note}`,
+    ].filter(Boolean);
+  };
+  const inbound = apps.filter((a) => a.fields.status === 'inbound')
+    .sort((a, b) => heardFrom(b.fields).localeCompare(heardFrom(a.fields)) || name(a).localeCompare(name(b)));
+  const stale = inbound.filter((a) => daysBetween(heardFrom(a.fields), today) > STALE_INBOUND_DAYS);
+  for (const app of inbound.filter((a) => !stale.includes(a))) {
+    const from = found.get(app)?.from;
+    const ask = app.reply?.decision === 'interested' ? 'Generate a resume?' : 'Generate a resume, or pass?';
+    needsYou.push(`- **Inbound: ${name(app)}**${from ? ` from ${from}` : ''} (${fmt(heardFrom(app.fields))}). ${ask}`);
+    needsYou.push(...describe(app).map((line) => `  - ${line}`));
   }
   if (stale.length) {
-    const dates = stale.map((a) => a.fields.created).sort();
-    const span = dates[0] === dates.at(-1) ? fmt(dates[0]) : `${fmt(dates[0])} to ${fmt(dates.at(-1))}`;
-    needsYou.push(`- **${stale.length} older Inbound** (${span}), over ${STALE_INBOUND_DAYS} days old: ${stale.map(name).join('; ')}. Pass on all of them, or name any to pursue?`);
+    needsYou.push(`- **${stale.length} older Inbound**, last heard over ${STALE_INBOUND_DAYS} days ago. Pass on all of them, or name any to pursue?`);
+    for (const app of stale) needsYou.push(`  - **${name(app)}** (${fmt(heardFrom(app.fields))}): ${describe(app).join(' ')}`);
   }
   // An action counts while its mail is news and the Application is still open; the newest one per Application.
   const actions = new Map();
