@@ -434,4 +434,23 @@ test('the candidate\'s replies decide Inbound: a no closes it as passed, a yes s
   assert.match(text, /- \*\*Globex, Staff Engineer\*\*: inbound → passed \(Mar 30; your reply: not looking at Globex\)\./);
   // A no with nothing on record to close is unmatched, not a new Application.
   assert.match(text, /- your reply to hooli\.test \(Mar 21\): no Application for Hooli\./);
+  // The candidate's own no leaves last_contact as the employer's last word.
+  assert.match(waiting, /last_contact: 2026-03-20\n/);
+  // The same mail read again creates nothing and repeats no note.
+  const before = readdirSync(join(dir, 'applications')).map((f) => read(dir, f)).join('\n');
+  const again = run({ paths: pathsFor(dir), input, today: TODAY });
+  assert.equal(readdirSync(join(dir, 'applications')).map((f) => read(dir, f)).join('\n'), before);
+  assert.match(again.text, /You replied Mar 28: asked for a call next week/);
+});
+
+test('the candidate\'s yes keeps an Inbound open even when the criteria say no', () => {
+  const dir = dataDir({});
+  const input = { since: '2026-03-01', inbound: [
+    { company: 'Acme', role: 'Staff Engineer', date: '2026-03-25', evidence: 'acme.test, "Hi"', about: 'Acme makes anvils.', pay_range: '$120k',
+      checks: { level: 'pass', focus: 'pass', location: 'fail', type: 'full-time', legitimacy: 'pass' }, reasons: { location: 'NYC only' },
+      reply: { date: '2026-03-26', decision: 'interested', note: 'would relocate for this one' } },
+  ] };
+  const { text } = run({ paths: pathsFor(dir), input, today: TODAY });
+  assert.match(text, /- \*\*Inbound: Acme, Staff Engineer\*\* \(Mar 25\)\. Generate a resume\?\n  - Acme makes anvils\.\n  - Pay: \$120k\. Location: not given\. Flags: location: NYC only, pay: the top of the range, \$120k, is under the \$150k floor\.\n  - You replied Mar 26: would relocate for this one\n/);
+  assert.match(text, /## 5\. Screened out\n\nNothing\./);
 });

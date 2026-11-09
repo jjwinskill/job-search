@@ -44,6 +44,7 @@ source_url: https://example.com/jobs/123
 location: Remote (US)
 pay_range: $150k–$190k     # as posted, with its source when that isn't the recruiter's message; empty if not posted
 about: Example Co sells payroll software; the role owns its React front end   # optional: what the company and role are, for an Inbound
+reply: 2026-01-18 (interested): asked for a call   # optional: the candidate's yes to a recruiter, from check-status
 super_resume_version: 3f2a9c1   # commit of super-resume.md the resume came from
 template: 0d4e8a3          # resume template hash the PDF was rendered with
 skim_check: pass           # optional: pass or fail, when a skim check ran on this template
