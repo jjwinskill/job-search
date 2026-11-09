@@ -454,3 +454,12 @@ test('the candidate\'s yes keeps an Inbound open even when the criteria say no',
   assert.match(text, /- \*\*Inbound: Acme, Staff Engineer\*\* \(Mar 25\)\. Generate a resume\?\n  - Acme makes anvils\.\n  - Pay: \$120k\. Location: not given\. Flags: location: NYC only, pay: the top of the range, \$120k, is under the \$150k floor\.\n  - You replied Mar 26: would relocate for this one\n/);
   assert.match(text, /## 5\. Screened out\n\nNothing\./);
 });
+
+test('one message with two postings of alike titles is two Inbound', () => {
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  const dir = dataDir({});
+  const role = (title, url) => ({ company: 'Globex', role: title, date: '2026-03-25', evidence: 'globex.test, "Openings"', source_url: url, about: 'Globex makes widgets.', checks: pass });
+  const { text } = run({ paths: pathsFor(dir), input: { since: '2026-03-01', inbound: [role('Staff Engineer (AI)', 'https://globex.test/1'), role('Sr. Staff Engineer (AI)', 'https://globex.test/2')] }, today: TODAY, dryRun: true });
+  assert.match(text, /Inbound: Globex, Staff Engineer \(AI\)/);
+  assert.match(text, /Inbound: Globex, Sr\. Staff Engineer \(AI\)/);
+});

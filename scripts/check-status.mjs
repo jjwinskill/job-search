@@ -450,7 +450,9 @@ export function run({ paths, input, today, dryRun = false }) {
     const replyNote = reply ? ` ${reply.date}: you replied (${reply.decision}): ${reply.note}.` : '';
     // A recruiter writing about a role already on record is mail about it: it fills in missing details, and the
     // candidate's reply decides it. A reply on a role already closed (the same mail read twice) finds that record too.
-    const same = (a) => sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? '');
+    // Two different posting links are two roles, however alike the titles ("Staff" and "Sr. Staff" in one message).
+    const same = (a) => sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? '')
+      && !(item.source_url && a.fields.source_url && item.source_url !== a.fields.source_url);
     const existing = apps.find((a) => OPEN.includes(a.fields.status) && same(a))
       ?? (reply ? apps.find((a) => CLOSED.includes(a.fields.status) && same(a)) : undefined);
     if (existing) {
