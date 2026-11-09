@@ -69,7 +69,8 @@ const roleMatches = (printed, role) => same(printed, role) || same(printed, Stri
 
 const listNames = (text) => plain(text).replace(/^Other [^:]+:\s*/i, '').replace(/\.$/, '').split(/,\s*|\s+and\s+/).map((s) => s.trim()).filter(Boolean);
 
-function checkContact(resume, info, problems) {
+// The name and contact lines against Candidate Info. Takes anything with `name` and `contact` (a resume or a letter).
+export function checkContact(resume, info, problems) {
   if (!info) return;
   const contact = resume.contact.join(' | ');
   const hrefs = [...contact.matchAll(/\]\(([^)]+)\)/g)].map((m) => bareUrl(m[1]));
@@ -269,6 +270,11 @@ const claimLines = (resume) => resume.sections
  * A Project's approved description ("Description (approved …") is left out, because the writer starts from it.
  */
 export function copiedRuns(resume, superResume, run = COPY_RUN) {
+  return copiedLines(claimLines(resume), superResume, run);
+}
+
+// The same check for any list of plain-text lines, such as a cover letter's paragraphs.
+export function copiedLines(lines, superResume, run = COPY_RUN) {
   // Runs stay inside one paragraph, bullet, heading or table row of the Super Resume, never across two.
   const chunks = superResume.replaceAll('\r\n', '\n').split(/\n(?=\s*(?:$|#|[-*] |\|))/).filter((c) => !/Description \(approved/.test(c));
   const grams = new Set();
@@ -277,7 +283,7 @@ export function copiedRuns(resume, superResume, run = COPY_RUN) {
     for (let i = 0; i + run <= source.length; i += 1) grams.add(source.slice(i, i + run).join(' '));
   }
   const found = [];
-  for (const line of claimLines(resume)) {
+  for (const line of lines) {
     const w = words(line);
     const hit = (i) => grams.has(w.slice(i, i + run).join(' '));
     let best = null;

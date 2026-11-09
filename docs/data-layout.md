@@ -10,13 +10,18 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 │       ├── application.md the record (frontmatter below) and running notes
 │       ├── jd.md          the Job Description as found
 │       ├── research.md    Company Research, with links
-│       ├── thesis.md      the full Job Thesis
+│       ├── thesis.md      the full Job Thesis, and a cover letter's plan when one was drafted
 │       ├── terms.txt      the JD's must-have terms in its spelling, for the keyword check
 │       ├── resume.md      the Generated Resume's source (docs/resume-format.md)
 │       ├── resume.pdf     the rendered resume
 │       ├── resume.txt     the PDF's extracted text: what a parser reads
 │       ├── review.md      what the reviewers found and what changed
-│       └── gaps.md        Gap Note questions and answers
+│       ├── gaps.md        Gap Note questions and answers
+│       ├── cover-letter.md         a Cover Letter Draft's source, which the candidate rewrites
+│       ├── cover-letter.pdf        the rendered letter, one page
+│       ├── cover-letter.txt        the letter as plain text for a form's paste box, greeting to name
+│       ├── cover-letter-review.md  what the letter's reviewers found and what changed
+│       └── cover-letter-outline.md notes the candidate writes from, when the employer asks for their own first draft
 ├── applications.csv       index rebuilt by `npm run index`; never edit by hand
 ├── lessons.md             Lessons: standing preferences every Generated Resume follows, added to by Edits
 ├── criteria.md            what the candidate is looking for, used to screen Inbound

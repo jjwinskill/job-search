@@ -25,6 +25,7 @@ Every writing step follows [writing-rules.md](writing-rules.md). The subagent pr
    - *Done when* `<app>/jd.md` holds the posting as found, with its source.
 
 3. **Company Research.** If another Application at the same company has a `research.md` under 30 days old, copy it in and have the research agent add only this role's team JDs. Otherwise send the Company Research brief.
+   - `research.md` stays in the Application folder: `/job-search:draft-cover-letter` and later runs at the same company reuse it.
    - *Done when* `<app>/research.md` exists and its claims carry links.
 
 4. **Job Thesis.** Write `<app>/thesis.md` from the JD, the research and the whole Super Resume. It decides what to feature, never what is true.
