@@ -12,6 +12,7 @@
     "fetch-jd": "node scripts/fetch-jd.mjs",
     "facts": "node scripts/fact-blocks.mjs",
     "render": "node scripts/render-resume.mjs",
-    "check-resume": "node scripts/check-resume.mjs"
+    "check-resume": "node scripts/check-resume.mjs",
+    "render-letter": "node scripts/render-cover-letter.mjs"
   }
 }

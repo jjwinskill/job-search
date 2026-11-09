@@ -2,7 +2,7 @@
 
 A Claude Code plugin for a job search. You keep one exhaustive record of your career, called the Super Resume. The plugin turns it into a resume for a specific job description, tracks your applications, and reads your inbox for replies and recruiter outreach.
 
-**Status:** pre-v1. `generate-resume`, `edit-resume`, `update-super-resume` and `check-status` work. `draft-cover-letter` comes next.
+**Status:** pre-v1. `generate-resume`, `edit-resume`, `update-super-resume`, `check-status` and `draft-cover-letter` work.
 
 | Command | What it does |
 |---|---|
@@ -10,6 +10,7 @@ A Claude Code plugin for a job search. You keep one exhaustive record of your ca
 | `/job-search:edit-resume` | Applies the changes you describe in plain words and re-renders. Lasting preferences become Lessons that later resumes follow. |
 | `/job-search:update-super-resume <what>` | Adds or corrects material in your Super Resume from Evidence, then reports each change for you to veto. It asks only what no source can settle. |
 | `/job-search:check-status` | Reads your email (read-only), updates application statuses, and screens recruiter outreach against your criteria. |
+| `/job-search:draft-cover-letter [application]` | Writes a one-page Cover Letter Draft from an Application's research and Job Thesis, after one skippable question about why you want the job. Fresh reviewers check it, and you rewrite it in your own voice. Gives an outline instead when the employer asks for your own first draft. |
 
 The plugin holds no personal data. It reads and writes a private data folder that you point it at. The folder's layout is in [docs/data-layout.md](docs/data-layout.md), and a Generated Resume's source format is in [docs/resume-format.md](docs/resume-format.md).
 

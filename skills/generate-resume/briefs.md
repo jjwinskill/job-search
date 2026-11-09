@@ -12,6 +12,7 @@ Model: sonnet. Agent type: one with web search and web fetch.
 > 2. **The last twelve months of news:** launches, funding, acquisitions, layoffs, leadership changes.
 > 3. **Other JDs from the same company, above all the same team or org.** They flesh out a thin JD: the team's problems, stack, stage and seniority bar. Fetch a posting with `node <plugin>/scripts/fetch-jd.mjs <url>` (it prints the posting); use web search to find them.
 > 4. **The product this team builds:** who uses it, its main surfaces, its scale, and what goes wrong when it's built badly.
+> 5. **Guidance for candidates on using AI** in applications or interviews, if the company publishes any: what it allows and asks for.
 >
 > Fetch at most ten pages in all; search results don't count. Choose the pages that answer the most items, and let a thin section stay thin.
 >
