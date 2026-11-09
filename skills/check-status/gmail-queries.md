@@ -4,7 +4,7 @@ Reference for `/job-search:check-status`, from a real six-month sweep and a one-
 
 ## Queries
 
-Add the window's `after:` term to each. Archived mail is searched by default.
+Add the window's `query` term to each. Archived mail is searched by default.
 
 | Looking for | Query |
 |---|---|
@@ -27,7 +27,7 @@ Why they're shaped this way, from two months of real mail:
 ## Reading cheaply
 
 1. The summary view shows each thread's newest message, and that is often enough: confirmations and most rejections are clear from the sender, subject and snippet.
-2. When the candidate wrote in a thread (`labelIds` has `SENT`), open it with `get_thread` in the `PLAIN_TEXT` format: their reply can close the role or move it on, and it often explains why.
+2. When the candidate wrote in a thread (`labelIds` has `SENT`), open it with `get_thread` in the `MINIMAL` format: each message's sender, date and snippet. Their reply can close the role or move it on, and it often explains why. When a snippet cuts their answer off, open just that message with `get_message` (`PLAIN_TEXT`). A whole interview thread as plain text can run to hundreds of KB.
 3. When a recruiter thread has several messages, open it before judging the role: the first message carries the role, pay and location, and the newest is often a bare follow-up.
 4. Otherwise open a body only when the snippet leaves the type open. "Thanks for letting me know" under "Update on your interview" is a rejection, and the employer's message says so.
 

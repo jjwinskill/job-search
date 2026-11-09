@@ -32,15 +32,15 @@ The judgment is yours: what each email is, which Application it belongs to, whet
    - **skipped**: job alerts, newsletters, marketing. Count these.
 
    Decide from the sender, subject and snippet, and open a thread (`get_thread`, plain text) when its meaning turns on the body: "Update on your application" can be an interview or a rejection.
-   - **The candidate's replies are part of the conversation.** Read the whole thread whenever they wrote in it: their no closes a role, their yes keeps it open with its next step, and their questions can bring out the role an intro left unnamed. Record it as the Inbound's `reply`, or as a `passed` or `withdrawn` event on a role already on record. Thank-yous and scheduling notes change nothing.
+   - **The candidate's replies are part of the conversation.** Whenever they wrote in a thread, read their messages, cheaply, as [gmail-queries.md](gmail-queries.md) says: their no closes a role, their yes keeps it open with its next step, and their questions can bring out the role an intro left unnamed. Record it as the Inbound's `reply`, or as a `passed` or `withdrawn` event on a role already on record. Thank-yous and scheduling notes change nothing.
    - **Recruiter threads keep their details in the first message.** The summary view shows the newest one, often a "last check-in", so open the thread before calling the role vague.
 
    Give an event's `folder` when the mail plainly belongs to a listed Application; otherwise its company and role as the mail names them.
-   - *Done when* every thread is in one bucket, every event has a type, a date and evidence, and every thread the candidate wrote in has been read whole.
+   - *Done when* every thread is in one bucket, every event has a type, a date and evidence, and the candidate's own messages in every thread have been read.
 
 4. **Describe and screen each Inbound.** The candidate decides from the report alone, so every Inbound that passes screening gets an `about`: what the company does and what the role owns, in one or two sentences. The script refuses an Inbound without one.
    - **Read the JD** when the message links one: `node <plugin>/scripts/fetch-jd.mjs <url> --out <tmp>/jd-<n>.md`. When it names the role without a link, find the posting on the company's careers page or a job board.
-   - **Pay:** when the message has no range, take the one the JD or another copy of the same posting gives, and say where it came from in `pay_range` ("$146k–$241k (the company's posting)"). When nothing posts one, write that in `about`, with a comparable posted range and its source.
+   - **Pay:** when the message has no range, take the JD's. When the JD has none, search the web for another copy of the same posting (`<company> "<title>" salary`): job boards often repost it with the range. `pay_range` holds only this posting's own range, with where it came from ("$146k–$241k (Built In's copy of the posting)"). When no copy posts one, say so in `about`, with a sibling or comparable role's range and its source.
    - **Checks:** judge `level`, `focus`, `location` and `type` against the criteria file from the message and the JD.
    - **Legitimacy:** `pass` when the sender's domain belongs to the company or a real recruiting agency or hiring platform, or the role is on the company's own careers page or job board. Otherwise `unverified`. A LinkedIn InMail has no sender domain, and one for an unnamed client is `unverified`.
    - The script applies the pay floor, and it skips screening for an Inbound the candidate has already declined.
@@ -49,7 +49,7 @@ The judgment is yours: what each email is, which Application it belongs to, whet
 5. **Apply.** Write the input to `<tmp>/input.json` and dry-run it: `node <plugin>/scripts/check-status.mjs run <tmp>/input.json --dry-run`.
    - Read every **Changed** line against its mail: a misread email shows up here as a wrong move. Fix the input and dry-run again.
    - For each line the script added to **Unmatched** that the mail lets you place (it names which of two roles), add the `folder` and dry-run again.
-   - Then run it for real, without `--dry-run`. It writes `reports/<date>.md`, updates the Applications and rebuilds the index.
+   - Then run it for real, without `--dry-run`. It writes `reports/<date>.md` (`<date>-2.md` for a second run that day), updates the Applications and rebuilds the index.
    - *Done when* the real run exits 0.
 
 6. **Report.** If `<data>` is a git repo, commit `applications/`, `applications.csv` and `reports/` as `Status report: <date>`. Show the report in chat exactly as the script printed it.
