@@ -63,7 +63,7 @@ Fields as in `events`, plus `from` (who wrote, in a few words: "a recruiter at A
 
 `reasons` gives a few words for each `fail`, keyed by check: `{ "focus": "electrical engineering" }`. Leave pay to the script: put the posted range in `pay_range` as written, with where it came from when that isn't the message, and it applies the floor from the criteria file. One message naming three roles is three Inbound.
 
-- `about`: what the company does and what the role owns, in one or two sentences. Required for every Inbound that passes screening; the script refuses the run without it.
+- `about`: what the company does and what the role owns, in one or two sentences that make sense on their own, because the report's order can change. Required for every Inbound that passes screening; the script refuses the run without it.
 - `reply`: the candidate's own answer in the thread, when they gave one. `decision` is `declined` (the role closes as `passed`, and screening is skipped) or `interested` (it stays open even where the criteria say no, with the misses as flags, and the record and report keep the reply). `note` is what they said, in a few words.
 
 A recruiter writing again about a role already on the `apps` list may come as an event or as an Inbound. As an Inbound, the script treats it as mail about that record, fills in any `about`, pay, location or link the record lacks, and applies a `reply`.

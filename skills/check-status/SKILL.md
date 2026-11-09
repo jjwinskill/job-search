@@ -22,6 +22,7 @@ The judgment is yours: what each email is, which Application it belongs to, whet
    - *Done when* you hold the window, the Application list and the criteria.
 
 2. **Search.** Run every query in [gmail-queries.md](gmail-queries.md) with the window's `query` term added, in the summary view at 50 threads a page, following each page token to the end. A thread found by several queries counts once.
+   - **On a first run** (`firstRun`), split the six months in two and hand each half to a subagent on Sonnet. Each runs steps 1 to 4 with its own `after:` and `before:` dates in place of the window's `query`, writes its placements to its own file in `<tmp>` as it goes, in the shape of [run-input.md](run-input.md), and stops there. Merge the two files, counting a thread both found once. Six months of mail in one context grows past 400k tokens, and every later call re-reads it.
    - *Done when* every query has run to its last page.
 
 3. **Place each thread** in exactly one bucket, in the shape of [run-input.md](run-input.md):
