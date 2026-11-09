@@ -247,6 +247,25 @@ export function sameRole(a, b) {
   return x.length > 0 && roleSimilarity(a, b) === 1;
 }
 
+// Query keys that only say who shared a link, never which job it is.
+// A bare `ref` stays out: some careers pages use it as the job's own id, and a lost role is worse than a duplicate.
+const TRACKING_KEY = /^(utm_.*|src|source|ref_?id|referrer|trk.*|tracking.*|gh_src|lever-.*|fbclid|gclid|mc_.*)$/i;
+
+// The same posting in two links: the same host and path, and no query key both carry with different values, after
+// tracking keys are dropped. A recruiter's "?src=..." tag isn't a different role; a different "?gh_jid=" is.
+export function samePosting(a, b) {
+  const parse = (s) => { try { return new URL(String(s).trim()); } catch { return null; } };
+  const [x, y] = [parse(a), parse(b)];
+  if (!x || !y) return String(a).trim() === String(b).trim();
+  const host = (u) => u.hostname.toLowerCase().replace(/^www\./, '');
+  const path = (u) => u.pathname.replace(/\/+$/, '');
+  if (host(x) !== host(y) || path(x) !== path(y)) return false;
+  for (const [key, value] of x.searchParams) {
+    if (!TRACKING_KEY.test(key) && y.searchParams.has(key) && !y.searchParams.getAll(key).includes(value)) return false;
+  }
+  return true;
+}
+
 // ---- reading and writing records ----
 
 export function slugify(text, max = 60) {
@@ -450,9 +469,9 @@ export function run({ paths, input, today, dryRun = false }) {
     const replyNote = reply ? ` ${reply.date}: you replied (${reply.decision}): ${reply.note}.` : '';
     // A recruiter writing about a role already on record is mail about it: it fills in missing details, and the
     // candidate's reply decides it. A reply on a role already closed (the same mail read twice) finds that record too.
-    // Two different posting links are two roles, however alike the titles ("Staff" and "Sr. Staff" in one message).
+    // Two different postings are two roles, however alike the titles ("Staff" and "Sr. Staff" in one message).
     const same = (a) => sameCompany(a.fields.company, item.company) && sameRole(a.fields.role, item.role ?? '')
-      && !(item.source_url && a.fields.source_url && item.source_url !== a.fields.source_url);
+      && !(item.source_url && a.fields.source_url && !samePosting(item.source_url, a.fields.source_url));
     const existing = apps.find((a) => OPEN.includes(a.fields.status) && same(a))
       ?? (reply ? apps.find((a) => CLOSED.includes(a.fields.status) && same(a)) : undefined);
     if (existing) {

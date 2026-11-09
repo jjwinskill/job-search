@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { pathsFor } from '../scripts/config.mjs';
 import {
   appendNotes, ghostDue, mailWindow, matchApplication, monthsBefore, nextStatus, parsePayTop, payFloor, quietNote,
-  reportPath, roleSimilarity, run, sameCompany, screen, setStatus, slugify, updateFrontmatter, validateInput,
+  reportPath, roleSimilarity, run, sameCompany, samePosting, screen, setStatus, slugify, updateFrontmatter, validateInput,
 } from '../scripts/check-status.mjs';
 
 const SCRIPT = fileURLToPath(new URL('../scripts/check-status.mjs', import.meta.url));
@@ -462,4 +462,24 @@ test('one message with two postings of alike titles is two Inbound', () => {
   const { text } = run({ paths: pathsFor(dir), input: { since: '2026-03-01', inbound: [role('Staff Engineer (AI)', 'https://globex.test/1'), role('Sr. Staff Engineer (AI)', 'https://globex.test/2')] }, today: TODAY, dryRun: true });
   assert.match(text, /Inbound: Globex, Staff Engineer \(AI\)/);
   assert.match(text, /Inbound: Globex, Sr\. Staff Engineer \(AI\)/);
+});
+
+test('the same posting with a tracking tag is the same role; a different job id is not', () => {
+  assert.equal(samePosting('https://jobs.globex.test/job/123', 'https://jobs.globex.test/job/123?src=99_Pat'), true);
+  assert.equal(samePosting('https://www.globex.test/job/123/', 'https://globex.test/job/123?utm_source=linkedin#apply'), true);
+  assert.equal(samePosting('https://globex.test/job/123?src=a', 'https://globex.test/job/123?src=b'), true);
+  assert.equal(samePosting('https://globex.test/job/123', 'https://globex.test/job/124'), false);
+  assert.equal(samePosting('https://boards.globex.test/jobs?gh_jid=1', 'https://boards.globex.test/jobs?gh_jid=2'), false);
+  assert.equal(samePosting('https://boards.globex.test/jobs?gh_jid=1&gh_src=x', 'https://boards.globex.test/jobs?gh_jid=1'), true);
+  assert.equal(samePosting('https://globex.test/careers?ref=JR101', 'https://globex.test/careers?ref=JR102'), false);
+  assert.equal(samePosting('not a link', 'not a link'), true);
+  assert.equal(samePosting('not a link', 'https://globex.test/job/123'), false);
+
+  const pass = { level: 'pass', focus: 'pass', location: 'pass', type: 'full-time', legitimacy: 'pass' };
+  const folder = '2026-03-20-globex-staff-engineer-ai';
+  const dir = dataDir({ [folder]: app({ company: 'Globex', role: 'Staff Engineer (AI)', status: 'inbound', applied: '', created: '2026-03-20', last_contact: '2026-03-20', source_url: 'https://jobs.globex.test/job/123' }) });
+  const item = { company: 'Globex', role: 'Staff Engineer (AI)', date: '2026-03-25', evidence: 'globex.test, "Following up"', source_url: 'https://jobs.globex.test/job/123?src=99_Pat', about: 'Globex makes widgets.', checks: pass };
+  run({ paths: pathsFor(dir), input: { since: '2026-03-01', inbound: [item] }, today: TODAY });
+  assert.deepEqual(readdirSync(join(dir, 'applications')), [folder]);
+  assert.match(read(dir, folder), /last_contact: 2026-03-25/);
 });
