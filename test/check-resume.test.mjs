@@ -9,7 +9,7 @@ import { candidateInfo, checkForm, checkResume, checkTerms, copiedRuns, copyWarn
 import { parseFactBlocks } from '../scripts/fact-blocks.mjs';
 import { parseResume } from '../scripts/resume-md.mjs';
 
-const superResume = readFileSync(new URL('./fixtures/super-resume.md', import.meta.url), 'utf8');
+const superResume = readFileSync(new URL('./fixtures/example-super-resume.md', import.meta.url), 'utf8');
 const source = readFileSync(new URL('./fixtures/resume.md', import.meta.url), 'utf8');
 const facts = parseFactBlocks(superResume);
 const info = candidateInfo(superResume);
@@ -209,7 +209,7 @@ test('a preferred term missing from the PDF text is a warning, never an error', 
 
 const CLI = fileURLToPath(new URL('../scripts/check-resume.mjs', import.meta.url));
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
-const run = (...args) => spawnSync(process.execPath, [CLI, join(FIXTURES, 'resume.md'), '--super-resume', join(FIXTURES, 'super-resume.md'), ...args], { encoding: 'utf8' });
+const run = (...args) => spawnSync(process.execPath, [CLI, join(FIXTURES, 'resume.md'), '--super-resume', join(FIXTURES, 'example-super-resume.md'), ...args], { encoding: 'utf8' });
 
 test('the command fails on a missing must-have, prints the coverage, and refuses --text without --terms', () => {
   const dir = mkdtempSync(join(tmpdir(), 'terms-'));
