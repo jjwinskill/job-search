@@ -22,7 +22,7 @@ The plugin keeps nothing personal. Everything it reads and writes lives in one p
 ├── criteria.md            what the candidate is looking for, used to screen Inbound
 ├── do-not-use.md          the Do-Not-Use List
 ├── sources/README.md      optional evidence map: where Evidence lives and how to search it
-├── reports/YYYY-MM-DD.md  status reports from /job-search:check-status
+├── reports/YYYY-MM-DD.md  status reports from /job-search:check-status; the newest one's date starts the next mail window
 ├── evals/                 evaluation runs, kept apart from real Applications
 └── scan-terms.txt         personal terms the pre-push scan blocks, one per line
 ```
@@ -42,14 +42,17 @@ applied: 2026-01-16        # empty until applied
 last_contact: 2026-01-20
 source_url: https://example.com/jobs/123
 location: Remote (US)
-pay_range: $150k–$190k     # as posted; empty if not posted
+pay_range: $150k–$190k     # as posted, with its source when that isn't the recruiter's message; empty if not posted
+about: Example Co sells payroll software; the role owns its React front end   # optional: what the company and role are, for an Inbound
+reply: 2026-01-18 (interested): asked for a call   # optional: the candidate's yes to a recruiter, from check-status
 super_resume_version: 3f2a9c1   # commit of super-resume.md the resume came from
 template: 0d4e8a3          # resume template hash the PDF was rendered with
 skim_check: pass           # optional: pass or fail, when a skim check ran on this template
 outcome: offer-declined    # optional: what a status alone can't say
+origin: check-status       # optional: how a record began, when /generate-resume didn't make it
 ```
 
-The body below the frontmatter holds notes: contacts, interview rounds, outcome.
+The body below the frontmatter holds notes: contacts, interview rounds, outcome. `/job-search:check-status` adds one dated line for each change it makes, with the email it came from.
 
 `outcome` is optional free text for a result the status can't carry, such as `offer-declined` (status `withdrawn`) or `offer-accepted`. It becomes a column in the index like any other extra key.
 
