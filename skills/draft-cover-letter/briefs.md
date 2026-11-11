@@ -19,7 +19,7 @@ Model: opus. No web.
 > 6. **The company reference:** is it tied to something this candidate did or would do, or does it stand alone?
 > 7. **Claims you'd doubt** in an interview: inflated, vague, or unsupported by the resume. For any claim about AI work, say whether it names what was built, the check the candidate ran, and a measured result.
 > 8. **Doubts left open:** what a product company worries about with this background (for a consultant: long-term ownership, maintenance, staying power) that the letter leaves unanswered.
-> 9. **Lines that read machine-written or stock:** template phrasing, rhetorical turns, a summing-up close, anything that sounds like no one in particular.
+> 9. **Lines that read machine-written or stock:** template phrasing, rhetorical turns, a summing-up close, an offer to talk or walk the reader through something, anything that sounds like no one in particular.
 > 10. **Tone:** presumptuous, apologetic, self-praising, or critical of another company or past team.
 > 11. **Misreads:** anything that makes a client look like the employer, or conflicts with the resume's titles and dates.
 >

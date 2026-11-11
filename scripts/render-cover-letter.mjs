@@ -17,7 +17,7 @@
 //   Optional date line, such as "March 3, 2026"
 //   Dear Example Co Hiring Team,
 //   One paragraph per line, blank lines between them.
-//   Best,
+//   Cheers,
 //   Name
 // A paragraph's own line breaks are kept, which is how the sign-off puts the name on its own line.
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -36,6 +36,8 @@ export const CSS_PATH = fileURLToPath(new URL('../templates/cover-letter.css', i
 export const WORDS = { target: [200, 300], warn: [150, 350] };
 export const PARAGRAPH_WORDS = 90;
 export const SENTENCE_WORDS = 25;
+// The line above the name (letter-rules.md, Shape). "Best," reads as an AI-written tagline and "Sincerely," as too formal.
+export const SIGN_OFF = 'Cheers,';
 
 // Surface tells of template or AI writing, as of model generations through late 2026. Each is weak alone and drifts
 // with every model generation, so they warn and never block. Review the lists when the models change.
@@ -136,6 +138,9 @@ export function checkLetter(letter, { info = null, sources = [], draft = null } 
   for (const spot of all.match(PLACEHOLDER) ?? []) warnings.push(`a marked spot is still unfilled: ${spot.length > 70 ? `${spot.slice(0, 70)}…]` : spot}`);
   // The phrase checks also read the sign-off's closing line, where stock closers live; never the name under it.
   const closing = letter.paragraphs.filter((p) => p.kind === 'sign-off').flatMap((p) => p.lines.slice(0, -1)).map(plain);
+  if (letter.paragraphs.some((p) => p.kind === 'sign-off') && closing.join(' ').trim() !== SIGN_OFF) {
+    warnings.push(`sign off with "${SIGN_OFF}" above the name${closing.length ? `, not "${clip(closing.join(' '), 40)}"` : ''}`);
+  }
   const prose = straighten([...paragraphs, ...closing].join('\n'));
   const lower = prose.toLowerCase();
   const stock = STOCK_PHRASES.filter((s) => new RegExp(`(?<![\\p{L}])${escapeRe(s.toLowerCase())}(?![\\p{L}])`, 'u').test(lower));

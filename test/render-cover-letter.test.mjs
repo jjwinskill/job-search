@@ -24,7 +24,7 @@ test('the header, date, greeting, body and sign-off are told apart', () => {
   assert.equal(letter.headline, '');
   assert.equal(letter.contact.length, 2);
   assert.deepEqual(letter.paragraphs.map((p) => p.kind), ['date', 'greeting', 'body', 'body', 'body', 'body', 'body', 'sign-off']);
-  assert.deepEqual(letter.paragraphs.at(-1).lines, ['Best,', 'Jane Doe']);
+  assert.deepEqual(letter.paragraphs.at(-1).lines, ['Cheers,', 'Jane Doe']);
 });
 
 test('a headline may follow the name, and the date is optional', () => {
@@ -76,7 +76,7 @@ test('template and AI tells are warnings', () => {
 });
 
 test('a stock closer in the sign-off and curly apostrophes are still caught', () => {
-  assert.match(warned(source.replace('Best,\nJane Doe', 'Thank you for your time and consideration,\nJane Doe')), /stock phrasing.*"thank you for your time and consideration"/);
+  assert.match(warned(source.replace('Cheers,\nJane Doe', 'Thank you for your time and consideration,\nJane Doe')), /stock phrasing.*"thank you for your time and consideration"/);
   assert.match(warned(source.replace("I'd like to help build", 'I’m excited to help build')), /stock phrasing.*"I'm excited"/);
   assert.match(warned(source.replace('I traced the retries and made each charge safe to repeat.', 'It isn’t about speed, it’s about trust.')), /"not X but Y" turn/);
 });
@@ -89,6 +89,13 @@ test('a sentence starting with a digit or a lowercase-led name is its own senten
   const twelve = 'one two three four five six seven eight nine ten eleven twelve';
   const md = source.replace('I traced the retries and made each charge safe to repeat.', `I traced the retries ${twelve}. 26 more words came after ${twelve}. iOS users saw ${twelve}.`);
   assert.doesNotMatch(warned(md), /-word sentence/);
+});
+
+test('a sign-off other than "Cheers," is a warning', () => {
+  assert.match(warned(source.replace('Cheers,\nJane Doe', 'Best,\nJane Doe')), /sign off with "Cheers," above the name, not "Best,"/);
+  assert.match(warned(source.replace('Cheers,\nJane Doe', 'Sincerely,\nJane Doe')), /not "Sincerely,"/);
+  assert.match(warned(source.replace('\nCheers,\nJane Doe', '\nJane Doe')), /sign off with "Cheers," above the name$/m);
+  assert.doesNotMatch(warned(source), /sign off with/);
 });
 
 test('a missing sign-off is a warning, not a problem', () => {
@@ -118,11 +125,11 @@ test('a kept run never spans two draft paragraphs', () => {
 test('the HTML keeps a paragraph\'s own line breaks; the paste-box text runs from the greeting to the name', () => {
   const letter = parseLetter(source);
   const html = toHtml(letter, '');
-  assert.match(html, /<p class="sign-off">Best,<br>Jane Doe<\/p>/);
+  assert.match(html, /<p class="sign-off">Cheers,<br>Jane Doe<\/p>/);
   assert.match(html, /<a href="https:\/\/www.linkedin.com\/in\/janedoe-example\/">linkedin.com\/in\/janedoe-example<\/a>/);
   const text = toText(letter);
   assert.match(text, /^Dear Example Co Hiring Team,\n\nI've booked/);
-  assert.match(text, /Best,\nJane Doe\n$/);
+  assert.match(text, /Cheers,\nJane Doe\n$/);
   assert.doesNotMatch(text, /\]\(|\*\*|March 3, 2026|jane.doe@example.com/);
 });
 
@@ -151,7 +158,7 @@ test('renders the fixture to a one-page PDF and a paste-box text copy', { skip: 
     assert.equal(report.pages, 1);
     assert.deepEqual(report.problems, []);
     assert.ok(existsSync(out));
-    assert.match(readFileSync(join(dir, 'cover-letter.txt'), 'utf8'), /^Dear Example Co Hiring Team,[\s\S]*Best,\nJane Doe\n$/);
+    assert.match(readFileSync(join(dir, 'cover-letter.txt'), 'utf8'), /^Dear Example Co Hiring Team,[\s\S]*Cheers,\nJane Doe\n$/);
 
     const long = join(dir, 'long.md');
     writeFileSync(long, source.replace(/(At Client A[^\n]+\n)/, '$1\n'.repeat(1) + '$1\n'.repeat(6)));
