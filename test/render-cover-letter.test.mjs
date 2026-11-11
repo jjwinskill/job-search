@@ -98,6 +98,20 @@ test('a sign-off other than "Cheers," is a warning', () => {
   assert.doesNotMatch(warned(source), /sign off with/);
 });
 
+test('a closer on its own paragraph above the name still belongs to the sign-off', () => {
+  const md = source.replace('Cheers,\nJane Doe', 'Cheers,\n\nJane Doe');
+  const letter = parseLetter(md);
+  assert.deepEqual(letter.paragraphs.at(-1), { lines: ['Cheers,', 'Jane Doe'], kind: 'sign-off' });
+  assert.deepEqual(check(md).warnings, []);
+  assert.equal(check(md).words, check(source).words);
+});
+
+test('an offer to talk the reader through something is a warning', () => {
+  const md = source.replace("I'd like to make the next stormy night that easy for someone else.", "I'd be glad to walk you through how that checkout went from double charges to none.");
+  assert.match(warned(md), /an offer to talk the reader through something \("walk you through", "I'd be glad to"\)/);
+  assert.doesNotMatch(warned(source.replace('I traced the retries', 'I talked through the retries with finance and traced them')), /offer to talk/);
+});
+
 test('a missing sign-off is a warning, not a problem', () => {
   const unsigned = check(source.replace(/Jane Doe\n$/, 'J.\n'));
   assert.match(unsigned.warnings.join('\n'), /doesn't end with the name/);

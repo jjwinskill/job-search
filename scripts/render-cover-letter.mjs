@@ -6,7 +6,8 @@
 // --out defaults to cover-letter.pdf beside the source. --text saves the letter as plain text for a paste box, from the
 // greeting to the name. --png saves an image of the page. Sentences shared with the Super Resume (from the config unless
 // given), the resume and the JD (resume.md and jd.md beside the letter unless given) are flagged. --draft lists the
-// sentences a rewrite kept from the draft it started from.
+// sentences a rewrite kept from the draft it started from. Warnings also cover template and AI tells, offers to talk the
+// reader through something, and a sign-off other than SIGN_OFF.
 // Exit codes: 0 rendered and checked, 1 the source or the PDF has a problem, 2 not set up or bad usage.
 //
 // Source format (skills/draft-cover-letter/letter-rules.md):
@@ -47,6 +48,12 @@ export const STOCK_PHRASES = [
   'great asset', 'great addition', 'dream job', 'industry-leading', 'world-class', 'innovative company', 'hit the ground running',
   'at your earliest convenience', 'thank you for your time and consideration', 'I believe I would', 'I am confident', "I'm confident",
 ];
+// Offers to talk or walk the reader through something (letter-rules.md, Shape: Close). The letter earns the interview;
+// the walkthrough belongs in it.
+export const TALK_OFFERS = [
+  'walk you through', 'talk you through', 'talk through', "I'd be glad to", 'I would be glad to', "I'd be happy to",
+  'I would be happy to', "I'd welcome the chance", 'I would welcome the chance', 'happy to discuss', 'look forward to discussing',
+];
 // Engineering terms of art (dynamic, landscape, robust) stay off this list: they're ordinary in a technical story.
 export const AI_VOCABULARY = /\b(delv\w*|testament|tapestr\w*|underscor\w*|pivotal|crucial|showcas\w*|vibrant|seamless\w*|meticulous\w*|realm|resonat\w*)\b/gi;
 export const CONTRAST_TURNS = [
@@ -58,6 +65,8 @@ export const TRAILING_PARTICIPLE = /,\s+(ensuring|highlighting|demonstrating|sho
 const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec';
 const DATE_LINE = new RegExp(`^(${MONTHS})\\.? \\d{1,2}, \\d{4}$`, 'i');
 const GREETING = /^(Dear|To|Hello|Hi)\b[^.!?]*[,:]$/i;
+// A short line ending in a comma, such as "Cheers," or "Thank you for your time and consideration,".
+const CLOSER = /^[^.!?]{1,60},$/;
 // A marked spot left for the candidate, such as "[Your opening: ...]". A Markdown link's text isn't one.
 const PLACEHOLDER = /\[[^\]]+\](?!\()/g;
 
@@ -94,6 +103,12 @@ export function parseLetter(markdown) {
     para.lines.push(line.trim());
   }
   if (!letter.paragraphs.length) throw new LetterFormatError('the letter has no paragraphs after the contact lines');
+  // A closer on its own paragraph above the name ("Cheers," then a blank line) still belongs to the sign-off.
+  const [closer, named] = letter.paragraphs.slice(-2);
+  if (letter.paragraphs.length > 2 && named.lines.length === 1 && plain(named.lines[0]).trim() === plain(letter.name)
+    && closer.lines.length === 1 && CLOSER.test(plain(closer.lines[0])) && !GREETING.test(plain(closer.lines[0]))) {
+    letter.paragraphs.splice(-2, 2, { lines: [closer.lines[0], named.lines[0]] });
+  }
   const last = letter.paragraphs.at(-1);
   letter.paragraphs.forEach((p, n) => {
     const text = plain(p.lines.join(' '));
@@ -128,7 +143,8 @@ export function checkLetter(letter, { info = null, sources = [], draft = null } 
   else if (words > WORDS.warn[1]) warnings.push(`${words} words; aim for ${WORDS.target.join('-')}. Cut the weakest sentence, not the story.`);
   else if (words < WORDS.warn[0]) warnings.push(`${words} words; aim for ${WORDS.target.join('-')}.`);
   if (!letter.paragraphs.some((p) => p.kind === 'greeting')) warnings.push('no greeting line (like "Dear Example Co Hiring Team,")');
-  if (!letter.paragraphs.some((p) => p.kind === 'sign-off')) warnings.push(`the letter doesn't end with the name, "${plain(letter.name)}", on its own line`);
+  const signOff = letter.paragraphs.find((p) => p.kind === 'sign-off');
+  if (!signOff) warnings.push(`the letter doesn't end with the name, "${plain(letter.name)}", on its own line`);
   for (const p of paragraphs) {
     const n = countWords(p);
     if (n > PARAGRAPH_WORDS) warnings.push(`a ${n}-word paragraph ("${clip(p, 40)}"); keep each under ${PARAGRAPH_WORDS}`);
@@ -137,14 +153,16 @@ export function checkLetter(letter, { info = null, sources = [], draft = null } 
   const all = letter.paragraphs.map((p) => p.lines.join(' ')).join('\n');
   for (const spot of all.match(PLACEHOLDER) ?? []) warnings.push(`a marked spot is still unfilled: ${spot.length > 70 ? `${spot.slice(0, 70)}…]` : spot}`);
   // The phrase checks also read the sign-off's closing line, where stock closers live; never the name under it.
-  const closing = letter.paragraphs.filter((p) => p.kind === 'sign-off').flatMap((p) => p.lines.slice(0, -1)).map(plain);
-  if (letter.paragraphs.some((p) => p.kind === 'sign-off') && closing.join(' ').trim() !== SIGN_OFF) {
-    warnings.push(`sign off with "${SIGN_OFF}" above the name${closing.length ? `, not "${clip(closing.join(' '), 40)}"` : ''}`);
-  }
+  const closing = signOff ? signOff.lines.slice(0, -1).map(plain) : [];
+  const closer = closing.join(' ').trim();
+  if (signOff && closer !== SIGN_OFF) warnings.push(`sign off with "${SIGN_OFF}" above the name${closer ? `, not "${clip(closer, 40)}"` : ''}`);
   const prose = straighten([...paragraphs, ...closing].join('\n'));
   const lower = prose.toLowerCase();
-  const stock = STOCK_PHRASES.filter((s) => new RegExp(`(?<![\\p{L}])${escapeRe(s.toLowerCase())}(?![\\p{L}])`, 'u').test(lower));
+  const found = (list) => list.filter((s) => new RegExp(`(?<![\\p{L}])${escapeRe(s.toLowerCase())}(?![\\p{L}])`, 'u').test(lower));
+  const stock = found(STOCK_PHRASES);
   if (stock.length) warnings.push(`stock phrasing a reader skims past: ${stock.map((s) => `"${s}"`).join(', ')}`);
+  const offers = found(TALK_OFFERS);
+  if (offers.length) warnings.push(`an offer to talk the reader through something (${offers.map((s) => `"${s}"`).join(', ')}); end on what the candidate wants to bring, or on the story`);
   const vocab = [...new Set((prose.match(AI_VOCABULARY) ?? []).map((w) => w.toLowerCase()))];
   if (vocab.length) warnings.push(`words common in AI-written text: ${vocab.map((w) => `"${w}"`).join(', ')}; say it plainly`);
   for (const s of paragraphs.map(straighten).flatMap(sentences)) {

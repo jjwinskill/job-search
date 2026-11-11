@@ -76,4 +76,4 @@ Jane Doe
 - Paragraphs are prose. Only links, `**bold**` and `*italic*` are inline Markdown.
 - The `.txt` copy runs from the greeting to the name, since a paste box's form already holds the contact details.
 
-The script checks the contact lines, the word, paragraph and sentence lengths, an unfilled marked spot, template and AI tells, runs of eight or more words shared with the Super Resume, the resume or the JD, and that the PDF fits one page.
+The script checks the contact lines, the word, paragraph and sentence lengths, an unfilled marked spot, template and AI tells, offers to talk the reader through something, the sign-off, runs of eight or more words shared with the Super Resume, the resume or the JD, and that the PDF fits one page.
