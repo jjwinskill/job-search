@@ -14,7 +14,7 @@ At Client C, a legal marketplace, clients, staff and lawyers each saw different 
 
 Your post on holding seats during a rush describes the problems I like most. A retry, a race or a stale cache costs a real person something. I'd bring the habit of making the second run of anything harmless, and of writing the test that proves it.
 
-I'd be glad to walk you through how that checkout went from double charges to none.
+I'd like to make the next stormy night that easy for someone else.
 
-Best,
+Cheers,
 Jane Doe

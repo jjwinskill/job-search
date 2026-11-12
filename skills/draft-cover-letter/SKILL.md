@@ -31,7 +31,7 @@ Every writing step follows [letter-rules.md](letter-rules.md). The subagent prom
    - **Motivation:** the candidate's answer, and any reframing letter-rules.md calls for; or the marked spot's questions.
    - **Story:** the strongest evidence for the team's top problem: the context, the candidate's decision, the result, its checkable detail, and the Super Resume lines it rests on (the entry and the accomplishment, note or Context). Say what it adds that the resume's bullet can't. Add the second example, if any, the same way.
    - **The company:** one specific reference from `research.md`, with its link, and the candidate's experience it ties to.
-   - **Close:** the problem or story the candidate would offer to talk through.
+   - **Close:** the last line, what the candidate wants to bring to the team's work, tied to the motivation; or none, ending on the story. Never an offer to talk anything through (letter-rules.md, Shape).
    - **Words to use:** the JD's terms for its top one or two requirements, where the Super Resume supports them.
    - *Done when* every claim in the plan names its Super Resume lines and the company reference has a link.
 

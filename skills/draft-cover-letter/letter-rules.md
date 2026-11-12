@@ -31,9 +31,9 @@ One page. A body of 200-300 words in three or four paragraphs, each under 90 wor
 1. **Opening:** the candidate's motivation, the company or role, and the strongest match claim, tied together, all inside the first 110 words. After a skip, the opening is a marked spot: `[Your opening: …]` holding two or three questions that prompt the candidate's real reason, the research facts that relate, and the career items that connect to them.
 2. **One story:** the strongest evidence for the team's top problem. The context, the candidate's decision, the result, with at least one checkable detail the resume lacks (the constraint, the trade-off, who it helped). A second example earns two sentences at most, and only when it's a different kind of evidence. For a consultancy background, one of them shows long-term ownership: years on one product, maintenance, a decision revisited.
 3. **The company, tied to the candidate:** one specific, checkable reference (a product, a technical choice, a post from the research) joined in the same or the next sentence to something the candidate did or would do. It often belongs in the opening.
-4. **Close:** one or two sentences offering to talk through a named problem or story.
+4. **Close:** one sentence on what the candidate wants to bring to the company's work, tied to their motivation, or end on the story itself. Never an offer to talk or walk the reader through something: the letter's only job is to earn the interview, an offer reads as a consultant's pitch, and the walkthrough belongs in the interview.
 
-The greeting is "Dear <Company> Hiring Team," or "Dear Hiring Manager,", with a person's name only when the posting or the candidate supplies it. The sign-off is "Best," and the candidate's name. A date line is optional.
+The greeting is "Dear <Company> Hiring Team," or "Dear Hiring Manager,", with a person's name only when the posting or the candidate supplies it. The sign-off is "Cheers," and the candidate's name: never "Best,", which reads as an AI-written tagline, or "Sincerely,", which is too formal. The script warns on any other. A date line is optional.
 
 ## Voice
 
@@ -68,7 +68,7 @@ One paragraph per line.
 
 Another paragraph.
 
-Best,
+Cheers,
 Jane Doe
 ```
 
@@ -76,4 +76,4 @@ Jane Doe
 - Paragraphs are prose. Only links, `**bold**` and `*italic*` are inline Markdown.
 - The `.txt` copy runs from the greeting to the name, since a paste box's form already holds the contact details.
 
-The script checks the contact lines, the word, paragraph and sentence lengths, an unfilled marked spot, template and AI tells, runs of eight or more words shared with the Super Resume, the resume or the JD, and that the PDF fits one page.
+The script checks the contact lines, the word, paragraph and sentence lengths, an unfilled marked spot, template and AI tells, offers to talk the reader through something, the sign-off, runs of eight or more words shared with the Super Resume, the resume or the JD, and that the PDF fits one page.
