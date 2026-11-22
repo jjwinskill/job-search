@@ -61,5 +61,7 @@ test('the HTML keeps each heading with its first bullet and prints skill and edu
   assert.match(html, /<p class="other">Other clients: Client C<\/p>/);
   assert.match(html, /<span class="entry-dates">Apr 2016 - Apr 2026<\/span>/);
   assert.doesNotMatch(html, /<li>Example Bootcamp/);
+  // Each section names itself, so the template can space Education's lines apart from the skills lines.
+  assert.match(html, /<section data-section="education" class="keep"><h2>Education<\/h2>/);
   assert.match(templateVersion(), /^[0-9a-f]{7}$/);
 });
