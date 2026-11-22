@@ -208,7 +208,8 @@ export function toHtml(resume, css = readFileSync(CSS_PATH, 'utf8')) {
   for (const line of resume.contact) out.push(`<p class="contact">${line.split(/\s+\|\s+/).map(inline).join(' &nbsp;|&nbsp; ')}</p>`);
   for (const section of resume.sections) {
     const lines = LINE_SECTIONS.test(section.title);
-    out.push(`<section${section.entries.length ? '' : ' class="keep"'}><h2>${inline(section.title)}</h2>`);
+    const slug = plain(section.title).toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+    out.push(`<section data-section="${slug}"${section.entries.length ? '' : ' class="keep"'}><h2>${inline(section.title)}</h2>`);
     for (const block of section.intro) out.push(blockHtml(block, lines));
     for (const entry of section.entries) out.push(entryHtml(entry));
     out.push('</section>');

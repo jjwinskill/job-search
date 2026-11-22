@@ -30,6 +30,7 @@ h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.8px; border
 .sub-role { color: #333; }
 .other { margin: 6px 0 2px 0; color: #333; }
 .line { margin: 1.5px 0; }
+[data-section="education"] .line { margin: 4px 0; }
 
 /* The lead bullet and the rest are separate lists so a page can break between them; close the seam. */
 .lead ul { margin-bottom: 0; }
